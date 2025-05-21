@@ -4,19 +4,26 @@ format:
     html:
         toc: true
         embed-resources: true
+        warning: false
 ---
-Library imports
+
+## Python: Data Cleaning & Feature Engineering
+
+### Library imports
+
 ```{python}
 import pandas as pd 
-from siuba import _, group_by, summarize
+from siuba import _, group_by, summarize, filter, select, mutate, arrange, count
 ```
 
-## Data Import
+### Data Import
+
 ```{python}
-youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.csv')
+youth = pd.read_csv('../../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.csv')
 ```
 
-## Preview the first 6 rows and 7 columns.
+### Preview the first 6 rows and 7 columns.
+
 ```{python}
 youth.iloc[:6,:8]
 ```
@@ -33,19 +40,26 @@ print(youth.shape)
 null_counts = youth.isnull().sum()
 null_counts = null_counts[null_counts > 0]
 ```
+
 ```{python}
 null_counts = null_counts.reset_index()
 null_counts
 ```
 
-## Reversing one-hot encoding for the gender identity column:
+### Reversing one-hot encoding for the gender identity column:
+
 ```{python}
 gender_cols = youth.loc[:,'QS1_9_GENDER1_1_1':'QS1_9_GENDER1_6_6']
 youth['QS1_9_gender'] = gender_cols.idxmax(axis = 1)
+youth['QS1_9_gender'].head().reset_index()
 ```
+
 > QS1_28_EMPLOYMENT_calculated, gender_cols
 
-## Create estimated total year income column:
+### Create estimated total year income column:
+
+> (Feature engineering)
+
 ```{python}
 youth['yearly_from_month'] = youth['Month_income'].fillna(0) * 12
 youth['yearly_from_seimimonth'] = youth['Semimonth_income'].fillna(0) * 24
@@ -56,35 +70,49 @@ youth['total_yearly_income'] = (youth['yearly_from_month'] +
                                 youth['yearly_from_seimimonth'] + 
                                 youth['yearly_from_biweek'] + 
                                 youth['yearly_from_week'])
+
 ```
 
+#### Preview new `total_yearly_income` column:
 
 ```{python}
-youth.to_csv('../../dssg-2025-mentor-canada/Data/intermediate.csv')
+(youth['total_yearly_income']).head()
 ```
 
+#### Save manipulated dataset to local as an intermediate processed dataset:
+
+```{python}
+youth.to_csv('../../../dssg-2025-mentor-canada/Data/intermediate.csv')
+```
+
+## R: Visualization 
+
 ```{r}
-#| warning: true
+#| warning: false
 library(tidyverse)
 library(knitr)
 ```
 
 ```{r}
-youth <- read_csv('../../dssg-2025-mentor-canada/Data/intermediate.csv')
+#| warning: false
+youth <- read_csv('../../../dssg-2025-mentor-canada/Data/intermediate.csv')
 kable(head(youth))
-colnames(youth)
 ```
 
-## Histograms to examine distributions:
-# Total estimated yearly income:
+### **Histograms to examine distributions**:
+
+#### Total estimated yearly income:
+
 ```{r}
 ggplot(youth, aes(x = total_yearly_income)) +
     geom_histogram() +
     scale_y_log10() +
     labs(title = "Distribution of total estimated yearly income",
-    x = "Estimate Total Yearly Income ($)")
+    x = "Estimate Total Yearly Income ($)") +
     theme_minimal()
 ```
+
+#### Frequency count of each gender identity (`QS1_9_gender`):
 
 ```{r}
 ggplot(youth, aes(x = QS1_9_gender, fill = QS1_9_gender)) +
@@ -92,7 +120,8 @@ ggplot(youth, aes(x = QS1_9_gender, fill = QS1_9_gender)) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### Compare gender to total employment income on average (`total_yearly_income`):
+#### Compare gender identity to estimated yearly total income (`total_yearly_income`):
+
 ```{r}
 ggplot(youth, aes(x = QS1_9_gender, y = total_yearly_income, fill = QS1_9_gender)) +
     geom_bar(stat = "identity") +
@@ -116,14 +145,16 @@ ggplot( aes(x = QS1_9_gender, y = total_yearly_income, fill = QS1_9_gender)) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### Comparing further education (`QS1_21_FURTHEDUCA`) and current income:
+#### Comparing further education (`QS1_21_FURTHEDUCA`) and current income:
+
 ```{r}
 ggplot(youth, aes(x = QS1_21_FURTHEDUCA, y = total_yearly_income, fill = QS1_9_gender)) +
     geom_boxplot(outliers = FALSE) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-#### Remove outlier in `no` group by removing the observations with `total_yearly_income` $29,380, the low-income for an individual person in 2024 in canada.
+> #### Remove outlier in `no` group by removing the observations with `total_yearly_income` \$29,380, the low-income for an individual person in 2024 in canada.
+
 ```{r}
 youth |>
 filter(total_yearly_income < 29380) |>
@@ -132,7 +163,7 @@ ggplot(aes(x = QS1_21_FURTHEDUCA, y = total_yearly_income, fill = QS1_9_gender))
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### Visualize Mental health outcome `QS4_9_MENTALHEALTH` (or `QS4_9_MENTALHEALTH_cat`) / `QS4_11_BELONGING` depending on early mentee experience (`QS2_3_PRESENCEOFM_cat` or `QS2_3_PRESENCEOFM`)
+#### Visualize Mental health outcome `QS4_9_MENTALHEALTH` (or `QS4_9_MENTALHEALTH_cat`) / `QS4_11_BELONGING` depending on early mentee experience (`QS2_3_PRESENCEOFM_cat` or `QS2_3_PRESENCEOFM`)
 
 ```{r}
 youth |>
