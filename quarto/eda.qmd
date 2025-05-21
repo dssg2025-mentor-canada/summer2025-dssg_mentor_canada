@@ -60,7 +60,7 @@ youth['total_yearly_income'] = (youth['yearly_from_month'] +
 
 
 ```{python}
-youth.to_csv('../../dssg-2025-mentor-canada/Data/intermediate.csv', index = True)
+youth.to_csv('../../dssg-2025-mentor-canada/Data/intermediate.csv')
 ```
 
 ```{r}
@@ -96,14 +96,14 @@ ggplot(youth, aes(x = QS1_9_gender, fill = QS1_9_gender)) +
 ```{r}
 ggplot(youth, aes(x = QS1_9_gender, y = total_yearly_income, fill = QS1_9_gender)) +
     geom_bar(stat = "identity") +
-    labs(x = "Gender Indentity", y = "Total income ") +
+    labs(x = "Gender Indentity", y = "Total estimated yearly income ($)") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ```{r}
 ggplot(youth, aes(x = QS1_9_gender, y = total_yearly_income, fill = QS1_9_gender)) +
     geom_boxplot() +
-    labs(x = "Gender Indentity", y = "Total income ") +
+    labs(x = "Gender Indentity", y = "Total estimated yearly income ($)") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
@@ -112,7 +112,7 @@ youth |>
 filter(total_yearly_income < 29380) |>
 ggplot( aes(x = QS1_9_gender, y = total_yearly_income, fill = QS1_9_gender)) +
     geom_bar(stat = "identity", position = "dodge") +
-    labs(x = "Gender Indentity", y = "Total income ") +
+    labs(x = "Gender Indentity", y = "Total estimated yearly income ($)") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
@@ -130,4 +130,15 @@ filter(total_yearly_income < 29380) |>
 ggplot(aes(x = QS1_21_FURTHEDUCA, y = total_yearly_income, fill = QS1_9_gender)) +
     geom_bar(stat = "identity", position = "dodge") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Visualize Mental health outcome `QS4_9_MENTALHEALTH` (or `QS4_9_MENTALHEALTH_cat`) / `QS4_11_BELONGING` depending on early mentee experience (`QS2_3_PRESENCEOFM_cat` or `QS2_3_PRESENCEOFM`)
+
+```{r}
+youth |>
+    filter(!is.na(QS4_9_MENTALHEALTH_cat)) |>
+    drop_na(QS2_3_PRESENCEOFM_cat) |>
+    ggplot(aes(x = QS2_3_PRESENCEOFM_cat, fill = QS4_9_MENTALHEALTH_cat)) +
+    geom_bar(position = "dodge") +
+    labs(x = "Early life mentor experience (age 6-11 years old)", fill = "Current Mental Health Rating")
 ```
