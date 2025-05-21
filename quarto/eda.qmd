@@ -1,0 +1,38 @@
+---
+title: Descriptive Data Statistics
+format: 
+    html:
+        toc: true
+        embed-resources: true
+---
+Library imports
+```{python}
+import pandas as pd 
+from siuba import _, group_by, summarize
+```
+Data Import
+```{python}
+youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.csv')
+```
+
+Preview the first 6 rows and 7 columns.
+```{python}
+youth.iloc[:6,:8]
+```
+
+```{python}
+#| warning: false
+#| output: asis
+youth.info()
+```
+
+```{python}
+print(youth.shape)
+
+null_counts = youth.isnull().sum()
+null_counts = null_counts[null_counts > 0]
+```
+```{python}
+null_counts = null_counts.reset_index()
+null_counts
+```
