@@ -1,0 +1,12 @@
+project:
+  type: book
+
+book:
+  title: "Mentor Canada DSSG"
+  reader-mode: true
+  chapters:
+    - index.qmd
+    - intro.qmd
+    - eda.qmd
+    - references.qmd
+  

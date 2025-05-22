@@ -12,8 +12,11 @@ format:
 ### Library imports
 
 ```{python}
-import pandas as pd 
+import pandas as pd
+import os
 from siuba import _, group_by, summarize, filter, select, mutate, arrange, count
+# report_directory = "quarto/" # setting working directory into the quarto folder to ensure quarto/code execution consistency
+# os.chdir(report_directory)
 ```
 
 ### Data Import
@@ -85,12 +88,13 @@ youth['total_yearly_income'] = (youth['yearly_from_month'] +
 youth.to_csv('../../../dssg-2025-mentor-canada/Data/intermediate.csv')
 ```
 
-## R: Visualization 
+## R: Visualization
 
 ```{r}
 #| warning: false
 library(tidyverse)
 library(knitr)
+library(reticulate)
 ```
 
 ```{r}
