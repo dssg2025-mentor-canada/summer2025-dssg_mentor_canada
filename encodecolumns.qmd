@@ -1,0 +1,314 @@
+---
+title: Data preprocessing
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+---
+
+## Python: Preprocessing and Cleaning
+
+### Library Imports
+```{python}
+import pandas as pd
+import os
+from siuba import _, group_by, summarize, filter, select, mutate, arrange, count
+import matplotlib.pyplot as plt
+```
+
+### Importing Data
+
+```{python}
+youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.csv')
+```
+
+### Dropping Columns
+
+```{python}
+# drop columns up to AO
+youth = youth.iloc[:, 41:]
+
+# drop logic + validation columns 
+youth = youth.drop(columns=['QAge_Validation', 'Logic_QS1_6_Qtext', 'Logic_Qtext', 'QS1_8_Validation', 'Logic_QS1_26_Ask', 'QS1_29_Validation', 
+                              'QS1_30_MValidatio', 'QS1_30_SMValidati', 'QS1_31_BWValidati', 'QS1_32_WValidatio', 'QS2_10_Validation', 'Logic_QS2_14_Ask','Logic_MENTORID1_1_1',
+                              'Logic_MENTORID1_2_2', 'Logic_MENTORID1_3_3', 'Logic_AP_QS2_23', 'Logic_QS2_27_Ask', 'Logic_QS2_34_Valid', 'Logic_QS2_35_Ask', 'Logic_QS2_35_Mask1_1_1',
+                              'Logic_QS2_35_Mask1_2_2', 'Logic_QS2_35_Mask1_3_3', 'Logic_QS2_35_Mask1_4_4', 'Logic_QS2_35_Mask1_5_5', 'Logic_QS2_35_Mask1_6_6', 'Logic_QS2_35_Mask1_7_7',
+                              'Logic_QS2_35_Mask1_8_8', 'Logic_QS2_35_Mask1_9_9', 'Logic_QS2_35_Mask1_10_10', 'QS4_14_Validatio', 'QS4_15_Validatio', 'QS4_19_Validatio', 'QS4_23_Validatio'
+    
+                              ])
+
+# drop parent education columns (keeping first two parent education columns)
+youth = youth.drop(youth.columns[102:120], axis=1)
+```
+
+### Indicate Text Columns
+```{python}
+text_columns = ['QS1_6_Other', 'QS1_9_Other', 'QS1_11_Other', 'QS1_16_Other', 'QS1_18_Other_1', 'QS1_18_Other_2',
+                 'QS1_22_Other', 'QS1_26_Other', 'QS1_27_Other', 'QS2_13_Other', 'QS2_14_MENTORID', 'QS2_14_MENTORID_2', 'QS2_14_MENTORID_3', 'QS2_18_LOCATION_1_O', 'QS2_15_RELATIONSHIP2', 'QS2_17_TYPE_2_Other', 'QS2_18_LOCATION_2_O', 'QS2_15_RELATIONSHIP3',
+                'QS2_17_TYPE_3_Other', 'QS2_18_LOCATION_3_O', 'QS2_25_YOUTHINIT2', 'QS2_27_MENTORPROGRA2', 'QS2_33_TRANSITIONS_Ot', 'QS2_34_SUPPORTS_Ot', 'QS2_38_NETGATIVEMENTO', 'QS3_2_TRANSITIONWITHOUTMEN', 'QS3_3_TRANSITIONSWITHOUTMENTO', 'QS4_4_Other', 'QS4_5_SATEDU_Other']
+
+```
+
+### Encode Columns
+
+#### Make column names interpertable for Q4 (Race)
+```{python}
+
+youth.rename(columns={
+    'QS1_6_ETHNOCULTURAL1_1_1': 'Race_SouthAsian',
+    'QS1_6_ETHNOCULTURAL1_2_2': 'Race_Chinese',
+    'QS1_6_ETHNOCULTURAL1_3_3': 'Race_Black',
+    'QS1_6_ETHNOCULTURAL1_4_4': 'Race_Filipino',
+    'QS1_6_ETHNOCULTURAL1_5_5': 'Race_LatinAmerica',
+    'QS1_6_ETHNOCULTURAL1_6_6': 'Race_Arab',
+    'QS1_6_ETHNOCULTURAL1_7_7': 'Race_SouthEastAsian',
+    'QS1_6_ETHNOCULTURAL1_8_8': 'Race_WestAsian',
+    'QS1_6_ETHNOCULTURAL1_9_9': 'Race_Korean',
+    'QS1_6_ETHNOCULTURAL1_10_10': 'Race_Japanese',
+    'QS1_6_ETHNOCULTURAL1_11_11': 'Race_White',
+    'QS1_6_ETHNOCULTURAL1_12_12': 'Race_Other',
+    'QS1_6_ETHNOCULTURAL1_13_13':'Race_Unsure',
+    'QS1_6_ETHNOCULTURAL1_14_14': 'Race_PreferNotToSay'}, inplace=True)
+
+```
+
+#### Make column names interpertable for Q6 (Gender)
+
+```{python}
+youth.rename(columns={
+    'QS1_9_GENDER1_1_1' : 'Gender_Woman',
+    'QS1_9_GENDER1_2_2': 'Gender_Man',
+    'QS1_9_GENDER1_3_3': 'Gender_NonBinary',
+    'QS1_9_GENDER1_4_4': 'Gender_CulturalMinority',
+    'QS1_9_GENDER1_5_5': 'Gender_Other',
+    'QS1_9_GENDER1_6_6': 'Gender_PreferNotToSay'}, inplace=True)
+```
+
+#### Make column names interpertable for Q10 (Primary caregiver)
+
+```{python}
+youth.rename(columns={
+    'QS1_16_PRIMARY1_1_1' : 'Primary_BirthMother',
+    'QS1_16_PRIMARY1_2_2': 'Primary_BirthFather',
+    'QS1_16_PRIMARY1_3_3': 'Primary_StepMother',
+    'QS1_16_PRIMARY1_4_4': 'Primary_StepFather',
+    'QS1_16_PRIMARY1_5_5': 'Primary_AdoptiveMother',
+    'QS1_16_PRIMARY1_6_6': 'Primary_AdoptiveFather',
+    'QS1_16_PRIMARY1_7_7': 'Primary_FosterMother',
+    'QS1_16_PRIMARY1_8_8': 'Primary_FosterFather',
+    'QS1_16_PRIMARY1_9_9': 'Primary_Grandmother',
+    'QS1_16_PRIMARY1_10_10': 'Primary_Grandfather',
+    'QS1_16_PRIMARY1_11_11': 'Primary_NoGuardians',
+    'QS1_16_PRIMARY1_12_12': 'Primary_Institution',
+    'QS1_16_PRIMARY1_13_13': 'Primary_Other'}, inplace=True)
+```
+
+#### Add yearly income column
+
+```{python}
+youth['yearly_from_month'] = youth['Month_income'].fillna(0) * 12
+youth['yearly_from_seimimonth'] = youth['Semimonth_income'].fillna(0) * 24
+youth['yearly_from_biweek'] = youth['Biweek_income'].fillna(0)*26
+youth['yearly_from_week'] = youth['Week_income'].fillna(0) * 52
+
+youth['total_yearly_income'] = (youth['yearly_from_month'] +
+                                youth['yearly_from_seimimonth'] + 
+                                youth['yearly_from_biweek'] + 
+                                youth['yearly_from_week'])
+```
+
+
+#### Make column names interpertable for Q19c1 (Access Barriers) 
+
+```{python}
+youth.rename(columns={
+    'QS2_13_ACCESSBARR1_1_1' : 'Barrier_Parent',
+    'QS2_13_ACCESSBARR1_2_2' : 'Barrier_MentorProgramAvailability',
+    'QS2_13_ACCESSBARR1_3_3' : 'Barrier_HowToFindMentor',
+    'QS2_13_ACCESSBARR1_4_4' : 'Barrier_MentorValue',
+    'QS2_13_ACCESSBARR1_5_5' : 'Barrier_NoWillingMentor',
+    'QS2_13_ACCESSBARR1_6_6' : 'Barrier_OtherKids',
+    'QS2_13_ACCESSBARR1_7_7' : 'Barrier_Relevance',
+    'QS2_13_ACCESSBARR1_8_8' : 'Barrier_Waitlisted',
+    'QS2_13_ACCESSBARR1_9_9' : 'Barrier_Other',
+    'QS2_13_ACCESSBARR1_10_10' : 'Barrier_Unsure',
+    'QS2_13_ACCESSBARR1_11_11' : 'Barrier_PreferNotToSay'
+  }, inplace=True)
+
+```
+
+#### Make column names interpertable for Q20b (Mentor relationship)
+
+```{python}
+youth.rename(columns={
+    'QS2_15_RELATIONS1_1_1' : 'Relation1_SchoolStaff',
+    'QS2_15_RELATIONS1_2_2' : 'Relation1_Neighbour',
+    'QS2_15_RELATIONS1_3_3' : 'Relation1_FamilyFriend',
+    'QS2_15_RELATIONS1_4_4' : 'Relation1_FriendsParent',
+    'QS2_15_RELATIONS1_5_5' : 'Relation1_AdultSibling',
+    'QS2_15_RELATIONS1_6_6' : 'Relation1_OtherAdultRelative',
+    'QS2_15_RELATIONS1_7_7' : 'Relation1_FosterParent',
+    'QS2_15_RELATIONS1_8_8' : 'Relation1_YouthWorker',
+    'QS2_15_RELATIONS1_9_9' : 'Relation1_Volunteer',
+    'QS2_15_RELATIONS1_10_10' : 'Relation1_Elder-Auntie',
+    'QS2_15_RELATIONS1_11_11' : 'Relation1_Social-CaseWorker',
+    'QS2_15_RELATIONS1_12_12' : 'Relation1_Therapist-Councellor-Physcologist',
+    'QS2_15_RELATIONS1_13_13' : 'Relation1_SpirutalLeader',
+    'QS2_15_RELATIONS1_14_14' : 'Relation1_Coach-GuidesLeader',
+    'QS2_15_RELATIONS1_15_15' : 'Relation1_Other'
+  }, inplace=True)
+
+youth.rename(columns={
+    'QS2_15_RELATIONS2_1_1' : 'Relation2_SchoolStaff',
+    'QS2_15_RELATIONS2_2_2' : 'Relation2_Neighbour',
+    'QS2_15_RELATIONS2_3_3' : 'Relation2_FamilyFriend',
+    'QS2_15_RELATIONS2_4_4' : 'Relation2_FriendsParent',
+    'QS2_15_RELATIONS2_5_5' : 'Relation2_AdultSibling',
+    'QS2_15_RELATIONS2_6_6' : 'Relation2_OtherAdultRelative',
+    'QS2_15_RELATIONS2_7_7' : 'Relation2_FosterParent',
+    'QS2_15_RELATIONS2_8_8' : 'Relation2_YouthWorker',
+    'QS2_15_RELATIONS2_9_9' : 'Relation2_Volunteer',
+    'QS2_15_RELATIONS2_10_10' : 'Relation2_Elder-Auntie',
+    'QS2_15_RELATIONS2_11_11' : 'Relation2_Social-CaseWorker',
+    'QS2_15_RELATIONS2_12_12' : 'Relation2_Therapist-Councellor-Physcologist',
+    'QS2_15_RELATIONS2_13_13' : 'Relation2_SpirutalLeader',
+    'QS2_15_RELATIONS2_14_14' : 'Relation2_Coach-GuidesLeader',
+    'QS2_15_RELATIONS2_15_15' : 'Relation2_Other'
+  }, inplace=True)
+
+youth.rename(columns={
+    'QS2_15_RELATIONS3_1_1' : 'Relation3_SchoolStaff',
+    'QS2_15_RELATIONS3_2_2' : 'Relation3_Neighbour',
+    'QS2_15_RELATIONS3_3_3' : 'Relation3_FamilyFriend',
+    'QS2_15_RELATIONS3_4_4' : 'Relation3_FriendsParent',
+    'QS2_15_RELATIONS3_5_5' : 'Relation3_AdultSibling',
+    'QS2_15_RELATIONS3_6_6' : 'Relation3_OtherAdultRelative',
+    'QS2_15_RELATIONS3_7_7' : 'Relation3_FosterParent',
+    'QS2_15_RELATIONS3_8_8' : 'Relation3_YouthWorker',
+    'QS2_15_RELATIONS3_9_9' : 'Relation3_Volunteer',
+    'QS2_15_RELATIONS3_10_10' : 'Relation3_Elder-Auntie',
+    'QS2_15_RELATIONS3_11_11' : 'Relation3_Social-CaseWorker',
+    'QS2_15_RELATIONS3_12_12' : 'Relation3_Therapist-Councellor-Physcologist',
+    'QS2_15_RELATIONS3_13_13' : 'Relation3_SpirutalLeader',
+    'QS2_15_RELATIONS3_14_14' : 'Relation3_Coach-GuidesLeader',
+    'QS2_15_RELATIONS3_15_15' : 'Relation3_Other'
+  }, inplace=True)
+
+
+```
+
+#### Make column names interpertable for 20h (Focus of relationship)
+
+```{python}
+youth.rename(columns={
+    'QS2_21_FOCUS_11_1_1' : 'Focus1_EducationSupport',
+    'QS2_21_FOCUS_11_2_2' : 'Focus1_Spirutal-Religous-CulturalSupport',
+    'QS2_21_FOCUS_11_3_3' : 'Focus1_Emotional-SocialSupport'
+  }, inplace=True)
+
+youth.rename(columns={
+    'QS2_21_FOCUS_21_1_1' : 'Focus2_EducationSupport',
+    'QS2_21_FOCUS_21_2_2' : 'Focus2_Spirutal-Religous-CulturalSupport',
+    'QS2_21_FOCUS_21_3_3' : 'Focus2_Emotional-SocialSupport'
+  }, inplace=True)
+
+youth.rename(columns={
+    'QS2_21_FOCUS_31_1_1' : 'Focus3_EducationSupport',
+    'QS2_21_FOCUS_31_2_2' : 'Focus3_Spirutal-Religous-CulturalSupport',
+    'QS2_21_FOCUS_31_3_3' : 'Focus3_Emotional-SocialSupport'
+  }, inplace=True)
+```
+
+
+#### Make column names interpertable for 23a (If youth initated, why?)
+
+```{python}
+youth.rename(columns={
+    'QS2_26_INITIATIO1_1_1' : 'Initated_StrugglingInSchool',
+    'QS2_26_INITIATIO1_2_2' : 'Initated_StrugglingMentalHealth',
+    'QS2_26_INITIATIO1_3_3' : 'Initated_InFoster-GovernmentCare',
+    'QS2_26_INITIATIO1_4_4' : 'Initated_StrugglingGender-SexualOrient',
+    'QS2_26_INITIATIO1_5_5' : 'Initated_GuardianInPrison',
+    'QS2_26_INITIATIO1_6_6' : 'Initated_CarrerPlanningGuidance',
+    'QS2_26_INITIATIO1_7_7' : 'Initated_AcademicFutureGuidance',
+    'QS2_26_INITIATIO1_8_8' : 'Initated_InTroubleWithLaw',
+    'QS2_26_INITIATIO1_9_9' : 'Initated_Bullied',
+    'QS2_26_INITIATIO1_10_10' : 'Initated_StrugglingRelatingToOthers',
+    'QS2_26_INITIATIO1_11_11' : 'Initated_SomeoneToTalkTo',
+    'QS2_26_INITIATIO1_12_12' : 'Initated_MovedSchools-Cities-Community',
+    'QS2_26_INITIATIO1_13_13' : 'Initated_Immigrated',
+    'QS2_26_INITIATIO1_14_14' : 'Initated_FamilyChanges',
+    'QS2_26_INITIATIO1_15_15' : 'Initated_NoneofAbove',
+    'QS2_26_INITIATIO1_16_16' : 'Initated_Unsure',
+    'QS2_26_INITIATIO1_17_17' : 'Initated_Other'
+
+  }, inplace=True)
+```
+
+#### Make column names interpertable for 25a (Match criteria)
+```{python}
+youth.rename(columns={
+    'QS2_29_MATCHCRITERI1_1_1' : 'Match_GenderIdentity',
+    'QS2_29_MATCHCRITERI1_2_2' : 'Match_Ethnicity',
+    'QS2_29_MATCHCRITERI1_3_3' : 'Match_CulturalBackground',
+    'QS2_29_MATCHCRITERI1_4_4' : 'Match_ScheduleAvailability',
+    'QS2_29_MATCHCRITERI1_5_5' : 'Match_Interests',
+    'QS2_29_MATCHCRITERI1_6_6' : 'Match_Goals',
+    'QS2_29_MATCHCRITERI1_7_7' : 'Match_Personalities',
+    'QS2_29_MATCHCRITERI1_8_8' : 'Match_LifeStruggles',
+    'QS2_29_MATCHCRITERI1_9_9' : 'Match_Other',
+    'QS2_29_MATCHCRITERI1_10_10' : 'Match_Unsure',
+    'QS2_29_MATCHCRITERI1_11_11' : 'Match_PreferNotToSay'}, inplace=True)
+```
+
+
+#### Make column names interpertable for 29 (Transitions)
+
+```{python}
+
+youth.rename(columns={
+    'QS2_33_TRANSITIONS1_1_1' : 'Transition_School',
+    'QS2_33_TRANSITIONS1_2_2' : 'Transition_NewSchool',
+    'QS2_33_TRANSITIONS1_3_3' : 'Transition_NewCommunity',
+    'QS2_33_TRANSITIONS1_4_4' : 'Transition_GettingDriversLicense',
+    'QS2_33_TRANSITIONS1_5_5' : 'Transition_JobAspirations',
+    'QS2_33_TRANSITIONS1_6_6' : 'Transition_GettingFirstJob',
+    'QS2_33_TRANSITIONS1_7_7' : 'Transition_ApplyingToTradeSchool-Collge-Uni',
+    'QS2_33_TRANSITIONS1_8_8' : 'Transition_IndependenceFromGuardian',
+    'QS2_33_TRANSITIONS1_9_9' : 'Transition_FundingForTradeSchool-Collge-Uni',
+    'QS2_33_TRANSITIONS1_10_10' : 'Transition_NoneOfAbove',
+    'QS2_33_TRANSITIONS1_11_11' : 'Transition_Other',
+    'QS2_33_TRANSITIONS1_12_12' : 'Transition_PreferNotToSay'
+    }, inplace=True)
+
+```
+
+#### Make column names interperatble for 33 (Negative Mentor Experiences)
+```{python}
+
+youth.rename(columns={
+    'QS2_38_NETGATIVEME1_1_1' : 'Negative_MetorQuit',
+    'QS2_38_NETGATIVEME1_2_2' : 'Negative_NoSharedInterest',
+    'QS2_38_NETGATIVEME1_3_3' : 'Negative_MetorDidNotUnderstandYouth',
+    'QS2_38_NETGATIVEME1_4_4' : 'Negative_MetorDidNotUnderstandCulture',
+    'QS2_38_NETGATIVEME1_5_5' : 'Negative_MetorUnreliable',
+    'QS2_38_NETGATIVEME1_6_6' : 'Negative_MetorCouldNotSupport',
+    'QS2_38_NETGATIVEME1_7_7' : 'Negative_DidNotGetAlong',
+    'QS2_38_NETGATIVEME1_8_8' : 'Negative_ReassignedMentor',
+    'QS2_38_NETGATIVEME1_9_9' : 'Negative_MetorHadUnrealisticExpectations',
+    'QS2_38_NETGATIVEME1_10_10' : 'Negative_MetorDidNotRespectBoundaries',
+    'QS2_38_NETGATIVEME1_11_11' : 'Negative_MetorDidNotRelateGender-SexualOrient',
+    'QS2_38_NETGATIVEME1_12_12' : 'Negative_MetorBusy',
+    'QS2_38_NETGATIVEME1_13_13' : 'Negative_MetorDidNotRelateBackground',
+    'QS2_38_NETGATIVEME1_14_14' : 'Negative_MetorLookedDownOnMentee',
+    'QS2_38_NETGATIVEME1_15_15' : 'Negative_MetorLookedDownOnFamily',
+    'QS2_38_NETGATIVEME1_16_16' : 'Negative_Family-GuardiansDidNotSupport',
+    'QS2_38_NETGATIVEME1_17_17' : 'Negative_Other',
+    'QS2_38_NETGATIVEME1_18_18' : 'Negative_NoneOfTheAbove',
+    'QS2_38_NETGATIVEME1_19_19' : 'Negative_PreferNotToSay',}, inplace=True)
+```
+
+```{python}
+youth.to_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv')
+```
