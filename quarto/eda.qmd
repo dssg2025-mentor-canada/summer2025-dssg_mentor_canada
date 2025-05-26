@@ -11,6 +11,12 @@ format:
 
 ### Library imports
 
+```{r}
+library(reticulate)
+library(here)
+py_config()
+```
+
 ```{python}
 import pandas as pd
 import os
@@ -22,7 +28,9 @@ from siuba import _, group_by, summarize, filter, select, mutate, arrange, count
 ### Data Import
 
 ```{python}
-youth = pd.read_csv('../../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.csv')
+file_path = os.path.join("..", "..", "dssg-2025-mentor-canada", "Data", "Data_2020-Youth-Survey.csv")
+
+youth = pd.read_csv(file_path)
 ```
 
 ### Preview the first 6 rows and 7 columns.

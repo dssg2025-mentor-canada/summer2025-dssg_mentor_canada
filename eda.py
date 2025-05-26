@@ -2,6 +2,7 @@
 # %%
 import pandas as pd
 import matplotlib.pyplot as plt
+from siuba import _, group_by, summarize, filter, select, mutate, arrange, count
 df = pd.read_csv('../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.csv')
 
 # %%
