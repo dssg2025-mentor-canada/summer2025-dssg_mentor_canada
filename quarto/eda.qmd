@@ -93,7 +93,9 @@ youth['total_yearly_income'] = (youth['yearly_from_month'] +
 #### Save manipulated dataset to local as an intermediate processed dataset:
 
 ```{python}
-youth.to_csv('../../../dssg-2025-mentor-canada/Data/intermediate.csv')
+save_path = os.path.join( "..", "..", "dssg-2025-mentor-canada", "Data", "intermediate.csv")
+
+youth.to_csv(save_path, index=False)
 ```
 
 ## R: Visualization
@@ -107,7 +109,7 @@ library(reticulate)
 
 ```{r}
 #| warning: false
-youth <- read_csv('../../../dssg-2025-mentor-canada/Data/intermediate.csv')
+youth <- read_csv('../../dssg-2025-mentor-canada/Data/intermediate.csv')
 kable(head(youth))
 ```
 
