@@ -175,3 +175,5 @@ cython_debug/
 
 # R history file
 .Rhistory
+/.quarto/
+.DS_Store
