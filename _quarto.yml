@@ -8,7 +8,12 @@ book:
   chapters:
     - index.qmd
     - intro.qmd
-    - week1.qmd
-    - week2.qmd
+    - part: "Week 1"
+      chapters:
+      - week1.qmd
+    - part: "Week 2"
+      chapters:
+        - week2.qmd
+        - dashboard.qmd    
     - references.qmd
   

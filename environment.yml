@@ -12,8 +12,4 @@ dependencies:
   - scikit-learn
   - matplotlib
   - siuba
-<<<<<<< HEAD
-  
-=======
-
->>>>>>> e0e8014c46e9e9ee7800533be379c7518a3c2db2
+  - plotly
