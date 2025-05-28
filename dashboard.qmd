@@ -37,6 +37,7 @@ df_single_gender['Gender'] = df_single_gender[gender_cols].idxmax(axis=1).str.re
 ```
 
 ```{python}
+#| include: false
 data['gender_sum'].value_counts()
 ```
 ```{python}
