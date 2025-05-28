@@ -134,12 +134,12 @@ youth_tidy_cols['teen_mentor_unmet_access'] = youth['QS2_12_UNMETNEED1']
 # Access barrier to mentor in teen years 12-18
 teen_access_barrier_cols = youth.loc[:, 'Barrier_Parent':'Barrier_PreferNotToSay'].columns
 youth[teen_access_barrier_cols] = youth[teen_access_barrier_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['19c_access_barriers'] = youth[teen_access_barrier_cols].idxmax(1)
+youth_tidy_cols['19c_access_barriers'] = youth[teen_access_barrier_cols].idxmax(axis=1, skipna=True)
 
 # Mentor 1
 mentor_figure_cols = youth.loc[:, 'Relation1_SchoolStaff':'Relation1_Other'].columns
 youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['20b_teen_mentor1_figure'] = youth[mentor_figure_cols].idxmax(1)
+youth_tidy_cols['20b_teen_mentor1_figure'] = youth[mentor_figure_cols].idxmax(axis=1, skipna=True)
 youth_tidy_cols['20c_teen_mentor1_form'] = youth['QS2_16_FORMAT_1']
 youth_tidy_cols['20d_teen_mentor1_type'] = youth['QS2_17_TYPE_1']
 youth_tidy_cols['20e_teen_mentor1_location'] = youth['QS2_18_LOCATION_1']
