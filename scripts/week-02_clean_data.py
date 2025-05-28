@@ -59,6 +59,19 @@ youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv')
 
 # Dictionary to collect all new columns
 youth_tidy_cols = {}
+	
+# Age
+youth_tidy_cols['1_age'] = youth['QS1_1_AGE']
+
+# Province
+youth_tidy_cols['2_province'] = youth['QS1_2_PROV']
+
+# Community type
+youth_tidy_cols['3_community_type'] = youth['QS1_3_COMMUNITYTYPE']
+
+# First nation identity
+youth_tidy_cols['4_indigenous_status'] = youth['QS1_4_INDIGENOUS']
+
 
 # Age
 youth_tidy_cols['age'] = youth['QS1_1_AGE']
