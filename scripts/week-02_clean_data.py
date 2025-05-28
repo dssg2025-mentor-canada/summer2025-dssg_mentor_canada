@@ -389,7 +389,6 @@ for named_col, unnamed_col in zip(named_neg_life_event_cols, unnamed_neg_life_ev
 youth_tidy_cols['adult_mentor'] = youth['QS4_1_MEANINGFULPERSON']
 youth_tidy_cols['adult_mentor_experience'] = youth['QS4_2_MEANINGFULPERSON']
 
-## Current social capital / access / quality of life
 unnamed_social_cap_cols = [
     'QS4_7_SOCIALCAPITAL1_1_1', 'QS4_7_SOCIALCAPITAL1_2_2',
     'QS4_7_SOCIALCAPITAL1_3_3', 'QS4_7_SOCIALCAPITAL1_4_4'
@@ -401,10 +400,8 @@ named_social_cap_cols = [
 for named_col, unnamed_col in zip(named_social_cap_cols, unnamed_social_cap_cols):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
-## Current perceived mental health rating
 youth_tidy_cols['mental_health_rating'] = youth['QS4_9_MENTALHEALTH']
 
-## Current well-being
 unnamed_well_being = [
     'QS4_10_MENTALWELLBE1_1_1', 'QS4_10_MENTALWELLBE1_2_2', 'QS4_10_MENTALWELLBE1_3_3',
     'QS4_10_MENTALWELLBE1_4_4', 'QS4_10_MENTALWELLBE1_5_5', 'QS4_10_MENTALWELLBE1_6_6',
@@ -417,7 +414,7 @@ named_well_being = [
 for named_col, unnamed_col in zip(named_well_being, unnamed_well_being):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
-## Current sense of belonging
+# Current sense of belonging
 youth_tidy_cols['belongingness'] = youth['QS4_11_BELONGING']
 
 # Current negative life events
