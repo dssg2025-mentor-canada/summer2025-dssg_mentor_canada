@@ -78,7 +78,7 @@ youth_tidy_cols['9a_diagnosed_disability'] = youth['QS1_13_DISABIL']
 # Primary caregiver growing up
 caregiver_cols = youth.loc[:, 'Primary_BirthMother':'Primary_Other'].columns
 youth[caregiver_cols] = youth[caregiver_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['10_caregiver'] = youth[caregiver_cols].idxmax(1)
+youth_tidy_cols['10_caregiver'] = youth[caregiver_cols].idxmax(1)  
 
 # Caregiver's educational level/attainment
 youth_tidy_cols['11_birth_mother_edu'] = youth['QS1_18_PARENTEDUC1'].astype('Int64')
