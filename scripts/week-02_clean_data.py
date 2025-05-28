@@ -50,6 +50,7 @@
 # Becoming a mentor intent as an adult = Q52
 
 import pandas as pd
+
 import os
 from siuba import _, group_by, summarize, filter, select, mutate, arrange, count
 
@@ -92,17 +93,18 @@ youth_tidy_cols['13a_further_edu_level'] = youth['QS1_22_HIGHESTEDU']
 youth_tidy_cols['14_employment'] = youth['QS1_25_EMPLOYMENT']
 
 # Yearly income estimate
-youth['yearly_from_month'] = youth['Month_income'].fillna(0) * 12
-youth['yearly_from_seimimonth'] = youth['Semimonth_income'].fillna(0) * 24
-youth['yearly_from_biweek'] = youth['Biweek_income'].fillna(0) * 26
-youth['yearly_from_week'] = youth['Week_income'].fillna(0) * 52
-youth['total_yearly_income'] = (
-    youth['yearly_from_month'] +
-    youth['yearly_from_seimimonth'] +
-    youth['yearly_from_biweek'] +
-    youth['yearly_from_week']
-)
-youth_tidy_cols['total_yearly_income'] = youth['total_yearly_income']
+youth['15_yearly_income'] = youth['QS1_28_EMPLOYMENT_calculated'].fillna(0)
+# youth['15b_yearly_from_month'] = youth['Month_income'].fillna(0) * 12
+# youth['yearly_from_seimimonth'] = youth['Semimonth_income'].fillna(0) * 24
+# youth['yearly_from_biweek'] = youth['Biweek_income'].fillna(0) * 26
+# youth['yearly_from_week'] = youth['Week_income'].fillna(0) * 52
+# youth['total_yearly_income'] = (
+#     youth['yearly_from_month'] +
+#     youth['yearly_from_seimimonth'] +
+#     youth['yearly_from_biweek'] +
+#     youth['yearly_from_week']
+# )
+youth_tidy_cols['15_yearly_income'] = youth['15_yearly_income']
 
 # Presence of meaningful person in early life 6-11
 youth_tidy_cols['early_meaningful_person'] = youth['QS2_1_MEANINGFULP']
