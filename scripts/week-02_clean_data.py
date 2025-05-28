@@ -131,64 +131,145 @@ youth_tidy_cols['teen_mentor_n'] = youth['QS2_10_NUMBEROFME']
 youth_tidy_cols['teen_mentor_seek'] = youth['QS2_11_MENTOR1218']
 # Unmet needs in teen years 12-18
 youth_tidy_cols['teen_mentor_unmet_access'] = youth['QS2_12_UNMETNEED1']
-# Access barrier to mentor in teen years 12-18
+# # Access barrier to mentor in teen years 12-18
+# teen_access_barrier_cols = youth.loc[:, 'Barrier_Parent':'Barrier_PreferNotToSay'].columns
+# youth[teen_access_barrier_cols] = youth[teen_access_barrier_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['19c_access_barriers'] = youth[teen_access_barrier_cols].idxmax(1)
+# fix for 19c: 
 teen_access_barrier_cols = youth.loc[:, 'Barrier_Parent':'Barrier_PreferNotToSay'].columns
 youth[teen_access_barrier_cols] = youth[teen_access_barrier_cols].apply(pd.to_numeric, errors='coerce')
+mask = youth[teen_access_barrier_cols].notna().any(axis=1)
+youth_tidy_cols['19c_access_barriers'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['19c_access_barriers'][mask] = youth.loc[mask, teen_access_barrier_cols].idxmax(axis=1)
+youth_tidy_cols['19c_access_barriers'] = youth_tidy_cols['19c_access_barriers'].fillna('No_Experience')
+
 youth_tidy_cols['19c_access_barriers'] = youth[teen_access_barrier_cols].idxmax(axis=1, skipna=True)
 
 # Mentor 1
+# fix for 20b:
+# mentor_figure_cols = youth.loc[:, 'Relation1_SchoolStaff':'Relation1_Other'].columns
+# youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['20b_teen_mentor1_figure'] = youth[mentor_figure_cols].idxmax(1)
 mentor_figure_cols = youth.loc[:, 'Relation1_SchoolStaff':'Relation1_Other'].columns
 youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
+mask = youth[mentor_figure_cols].notna().any(axis=1)
+youth_tidy_cols['20b_teen_mentor1_figure'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20b_teen_mentor1_figure'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
+youth_tidy_cols['20b_teen_mentor1_figure'] = youth_tidy_cols['20b_teen_mentor1_figure'].fillna('No_Experience')
+
+
 youth_tidy_cols['20b_teen_mentor1_figure'] = youth[mentor_figure_cols].idxmax(axis=1, skipna=True)
 youth_tidy_cols['20c_teen_mentor1_form'] = youth['QS2_16_FORMAT_1']
 youth_tidy_cols['20d_teen_mentor1_type'] = youth['QS2_17_TYPE_1']
 youth_tidy_cols['20e_teen_mentor1_location'] = youth['QS2_18_LOCATION_1']
 youth_tidy_cols['20f_teen_mentor1_duration'] = youth['QS2_19_DURATION_1']
 youth_tidy_cols['20g_teen_mentor1_experience'] = youth['QS2_20_EXPERIENCE_1']
+
+# fix for 20h:
+# teen_service_focus_cols = youth.loc[:, 'Focus1_EducationSupport':'Focus1_Emotional-SocialSupport'].columns
+# youth[teen_service_focus_cols] = youth[teen_service_focus_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['20h_teen_mentor1_focus'] = youth[teen_service_focus_cols].idxmax(1)
 teen_service_focus_cols = youth.loc[:, 'Focus1_EducationSupport':'Focus1_Emotional-SocialSupport'].columns
 youth[teen_service_focus_cols] = youth[teen_service_focus_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['20h_teen_mentor1_focus'] = youth[teen_service_focus_cols].idxmax(1)
+mask = youth[teen_service_focus_cols].notna().any(axis=1)
+youth_tidy_cols['20h_teen_mentor1_focus'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20h_teen_mentor1_focus'][mask] = youth.loc[mask, teen_service_focus_cols].idxmax(axis=1)
+youth_tidy_cols['20h_teen_mentor1_focus'] = youth_tidy_cols['20h_teen_mentor1_focus'].fillna('No_Experience')
+
+
 youth_tidy_cols['20g_teen_mentor1_canada'] = youth['QS2_22_GEOLOCATI1']
 
 # Mentor 2
+## fix for mentor2 20b:
+# mentor_figure_cols = youth.loc[:, 'Relation2_SchoolStaff':'Relation2_Other'].columns
+# youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['20b_teen_mentor2_figure'] = youth[mentor_figure_cols].idxmax(1)
+
 mentor_figure_cols = youth.loc[:, 'Relation2_SchoolStaff':'Relation2_Other'].columns
 youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['20b_teen_mentor2_figure'] = youth[mentor_figure_cols].idxmax(1)
+mask = youth[mentor_figure_cols].notna().any(axis=1)
+youth_tidy_cols['20b_teen_mentor2_figure'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20b_teen_mentor2_figure'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
+youth_tidy_cols['20b_teen_mentor2_figure'] = youth_tidy_cols['20b_teen_mentor2_figure'].fillna('No_Experience')
+
+
 youth_tidy_cols['20c_teen_mentor2_form'] = youth['QS2_16_FORMAT_2']
 youth_tidy_cols['20d_teen_mentor2_type'] = youth['QS2_17_TYPE_2']
 youth_tidy_cols['20e_teen_mentor2_location'] = youth['QS2_18_LOCATION_2']
 youth_tidy_cols['20f_teen_mentor2_duration'] = youth['QS2_19_DURATION_2']
 youth_tidy_cols['20g_teen_mentor2_experience'] = youth['QS2_20_EXPERIENCE_2']
+# fix for mentor 2 20h
+# teen_service_focus_cols = youth.loc[:, 'Focus2_EducationSupport':'Focus2_Emotional-SocialSupport'].columns
+# youth[teen_service_focus_cols] = youth[teen_service_focus_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['20h_teen_mentor2_focus'] = youth[teen_service_focus_cols].idxmax(1)
 teen_service_focus_cols = youth.loc[:, 'Focus2_EducationSupport':'Focus2_Emotional-SocialSupport'].columns
 youth[teen_service_focus_cols] = youth[teen_service_focus_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['20h_teen_mentor2_focus'] = youth[teen_service_focus_cols].idxmax(1)
+mask = youth[teen_service_focus_cols].notna().any(axis=1)
+youth_tidy_cols['20h_teen_mentor2_focus'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20h_teen_mentor2_focus'][mask] = youth.loc[mask, teen_service_focus_cols].idxmax(axis=1)
+youth_tidy_cols['20h_teen_mentor2_focus'] = youth_tidy_cols['20h_teen_mentor2_focus'].fillna('No_Experience')
+
 youth_tidy_cols['20g_teen_mentor2_canada'] = youth['QS2_22_GEOLOCATI2']
 
 # Mentor 3
+# Fix for 20b mentor 3:
+# mentor_figure_cols = youth.loc[:, 'Relation3_SchoolStaff':'Relation3_Other'].columns
+# youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['20b_teen_mentor3_figure'] = youth[mentor_figure_cols].idxmax(1)
 mentor_figure_cols = youth.loc[:, 'Relation3_SchoolStaff':'Relation3_Other'].columns
 youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['20b_teen_mentor3_figure'] = youth[mentor_figure_cols].idxmax(1)
+mask = youth[mentor_figure_cols].notna().any(axis=1)
+youth_tidy_cols['20b_teen_mentor3_figure'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20b_teen_mentor3_figure'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
+youth_tidy_cols['20b_teen_mentor3_figure'] = youth_tidy_cols['20b_teen_mentor3_figure'].fillna('No_Experience')
+
 youth_tidy_cols['20c_teen_mentor3_form'] = youth['QS2_16_FORMAT_3']
 youth_tidy_cols['20d_teen_mentor3_type'] = youth['QS2_17_TYPE_3']
 youth_tidy_cols['20e_teen_mentor3_location'] = youth['QS2_18_LOCATION_3']
 youth_tidy_cols['20f_teen_mentor3_duration'] = youth['QS2_19_DURATION_3']
 youth_tidy_cols['20g_teen_mentor3_experience'] = youth['QS2_20_EXPERIENCE_3']
+
+# Fix for 20h mentor 3:
+# teen_service_focus_cols = youth.loc[:, 'Focus3_EducationSupport':'Focus3_Emotional-SocialSupport'].columns
+# youth[teen_service_focus_cols] = youth[teen_service_focus_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['20h_teen_mentor3_focus'] = youth[teen_service_focus_cols].idxmax(1)
+# youth_tidy_cols['20g_teen_mentor3_canada'] = youth['QS2_22_GEOLOCATI3']
 teen_service_focus_cols = youth.loc[:, 'Focus3_EducationSupport':'Focus3_Emotional-SocialSupport'].columns
 youth[teen_service_focus_cols] = youth[teen_service_focus_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['20h_teen_mentor3_focus'] = youth[teen_service_focus_cols].idxmax(1)
-youth_tidy_cols['20g_teen_mentor3_canada'] = youth['QS2_22_GEOLOCATI3']
+mask = youth[teen_service_focus_cols].notna().any(axis=1)
+youth_tidy_cols['20h_teen_mentor3_focus'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20h_teen_mentor3_focus'][mask] = youth.loc[mask, teen_service_focus_cols].idxmax(axis=1)
+youth_tidy_cols['20h_teen_mentor3_focus'] = youth_tidy_cols['20h_teen_mentor3_focus'].fillna('No_Experience')
 
 # Who initiated the mentor program
 youth_tidy_cols['23_mentor1_init'] = youth['QS2_25_YOUTHINIT1']
 youth_tidy_cols['23_mentor2_init'] = youth['QS2_25_YOUTHINIT2']
-# Reason for mentorship initiation
+
+# Fix for 23a:
+# # Reason for mentorship initiation
+# init_reason_cols = youth.loc[:, 'Initated_StrugglingInSchool':'Initated_Other'].columns
+# youth[init_reason_cols] = youth[init_reason_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['23a_teen_mentor_init_reason'] = youth[init_reason_cols].idxmax(1)
 init_reason_cols = youth.loc[:, 'Initated_StrugglingInSchool':'Initated_Other'].columns
 youth[init_reason_cols] = youth[init_reason_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['23a_teen_mentor_init_reason'] = youth[init_reason_cols].idxmax(1)
+mask = youth[init_reason_cols].notna().any(axis=1)
+youth_tidy_cols['23a_teen_mentor_init_reason'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['23a_teen_mentor_init_reason'][mask] = youth.loc[mask, init_reason_cols].idxmax(axis=1)
+youth_tidy_cols['23a_teen_mentor_init_reason'] = youth_tidy_cols['23a_teen_mentor_init_reason'].fillna('No_Experience')
+
+
 # Teen's preferences about choosing mentor
+# fix for 24a:
+# mentor_prefer_cols = youth.loc[:, 'Match_GenderIdentity':'Match_PreferNotToSay'].columns
+# youth[mentor_prefer_cols] = youth[mentor_prefer_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['24a_teen_mentor_prefer'] = youth[mentor_prefer_cols].idxmax(1)
 mentor_prefer_cols = youth.loc[:, 'Match_GenderIdentity':'Match_PreferNotToSay'].columns
 youth[mentor_prefer_cols] = youth[mentor_prefer_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['24a_teen_mentor_prefer'] = youth[mentor_prefer_cols].idxmax(1)
+mask = youth[mentor_prefer_cols].notna().any(axis=1)
+youth_tidy_cols['24a_teen_mentor_prefer'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['24a_teen_mentor_prefer'][mask] = youth.loc[mask, mentor_prefer_cols].idxmax(axis=1)
+youth_tidy_cols['24a_teen_mentor_prefer'] = youth_tidy_cols['24a_teen_mentor_prefer'].fillna('No_Experience')
+
 # Rate how well the teen's mentor matching was
 youth_tidy_cols['26_language_similar'] = youth['QS2_30_MATCHSIMILAR1_1_1']
 youth_tidy_cols['26_gender_ident_similar'] = youth['QS2_30_MATCHSIMILAR1_2_2']
@@ -254,9 +335,18 @@ youth_tidy_cols['31_direction'] = youth['QS2_36_INFLUENCE1_9_9']
 youth_tidy_cols['32_mentor_helpfulness'] = youth['QS2_37_HELPFULNESS']
 
 # Negative mentor experience
+# mentor_neg_exp_cols = youth.loc[:, 'Negative_MetorQuit':'Negative_PreferNotToSay'].columns
+# youth[mentor_neg_exp_cols] = youth[mentor_neg_exp_cols].apply(pd.to_numeric, errors='coerce')
+# youth_tidy_cols['34_negative_experience'] = youth[mentor_neg_exp_cols].idxmax(1)
+
+# attempt to  fix error:
+# Negative mentor experience
 mentor_neg_exp_cols = youth.loc[:, 'Negative_MetorQuit':'Negative_PreferNotToSay'].columns
 youth[mentor_neg_exp_cols] = youth[mentor_neg_exp_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['34_negative_experience'] = youth[mentor_neg_exp_cols].idxmax(1)
+mask = youth[mentor_neg_exp_cols].notna().any(axis=1)
+youth_tidy_cols['34_negative_experience'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['34_negative_experience'][mask] = youth.loc[mask, mentor_neg_exp_cols].idxmax(axis=1)
+youth_tidy_cols['34_negative_experience'] = youth_tidy_cols['34_negative_experience'].fillna('No_Experience')
 
 # Retrospective self-worth at age 12-18
 unnamed_self_worth_cols = [
