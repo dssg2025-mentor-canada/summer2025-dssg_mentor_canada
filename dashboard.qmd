@@ -1,0 +1,111 @@
+--- 
+title: "Interactive Dashboard"
+author: "DSSG Mentor Canada"
+format: dashboard
+--- 
+
+```{python}
+#| include: false
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
+import matplotlib.pyplot as plt
+
+pio.templates.default = 'plotly_white'
+```
+
+```{python}
+#| include: false
+data = pd.read_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv')
+```
+
+# Unmet (Ages 6-11)
+
+```{python}
+#| include: false
+gender_cols = ['Gender_Woman', 'Gender_Man', 'Gender_NonBinary', 'Gender_CulturalMinority', 'Gender_Other', 
+'Gender_PreferNotToSay']
+
+y_611 = 'QS2_8_UNMETNEED61'
+
+# Only keep rows where observation only reported 1 gender
+data['gender_sum'] = data[gender_cols].sum(axis=1)
+df_single_gender = data[data['gender_sum'] == 1].copy()
+
+df_single_gender['Gender'] = df_single_gender[gender_cols].idxmax(axis=1).str.replace('Gender_', '')
+
+```
+
+```{python}
+#| include: false
+data['gender_sum'].value_counts()
+```
+```{python}
+#| include: false
+print(df_single_gender['Gender'])
+df_single_gender['QS2_8_UNMETNEED61'].unique()
+
+df = df_single_gender[['Gender', 'QS2_8_UNMETNEED61', 'QS2_12_UNMETNEED1']]
+print(df)
+```
+
+```{python}
+#| include: false
+counts = df.groupby(['Gender', 'QS2_8_UNMETNEED61']).size().reset_index(name='count')
+counts['total_per_gender'] = counts.groupby('Gender')['count'].transform('sum')
+counts['percent'] = (counts['count'] / counts['total_per_gender']) * 100
+
+```
+
+
+```{python}
+import plotly.express as px
+fig = px.bar(
+    counts,
+    x='Gender',
+    y='percent',
+    color='QS2_8_UNMETNEED61',
+    barmode='group',  # Change to 'stack' for stacked bar
+    labels={'percent': 'Percentage (%)', 'QS2_8_UNMETNEED61': 'Unmet Need'},
+    title='Unmet Mentorship Needs by Gender for Ages 6-11 (Percentage)'
+)
+```
+
+```{python}
+fig.show(renderer="iframe")
+
+```
+
+# Unmet (Ages 12-18)
+
+```{python}
+#| include: false
+counts2 = df.groupby(['Gender', 'QS2_12_UNMETNEED1']).size().reset_index(name='count')
+counts2['total_per_gender'] = counts2.groupby('Gender')['count'].transform('sum')
+counts2['percent'] = (counts2['count'] / counts2['total_per_gender']) * 100
+
+```
+
+```{python}
+
+fig2 = px.bar(
+    counts2,
+    x='Gender',
+    y='percent',
+    color='QS2_12_UNMETNEED1',
+    barmode='group',  # Change to 'stack' for stacked bar
+    labels={'percent': 'Percentage (%)', 'QS2_12_UNMETNEED1': 'Unmet Need'},
+    title='Unmet Mentorship Needs by Gender for Ages 12-18 (Percentage)',
+
+)
+```
+
+```{python}
+fig2.show(renderer="iframe")
+```
+
+# Counts
+
+```{python}
+df_single_gender['Gender'].value_counts()
+```
