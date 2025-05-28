@@ -10,6 +10,11 @@ format:
 ## Python: Data Cleaning & Feature Engineering
 
 ### Library imports
+```{r}
+library(reticulate)
+use_condaenv("dssg_env", required = TRUE)
+py_config()
+```
 
 ```{python}
 import pandas as pd
