@@ -55,7 +55,7 @@ import os
 from siuba import _, group_by, summarize, filter, select, mutate, arrange, count
 
 # Load the data
-youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv')
+youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv', low_memory=False)
 
 # Dictionary to collect all new columns
 youth_tidy_cols = {}
