@@ -88,7 +88,7 @@ youth_tidy_cols['9a_diagnosed_disability'] = youth['QS1_13_DISABIL']
 # Primary caregiver growing up
 caregiver_cols = youth.loc[:, 'Primary_BirthMother':'Primary_Other'].columns
 youth[caregiver_cols] = youth[caregiver_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['10_caregiver'] = youth[caregiver_cols].idxmax(1)
+youth_tidy_cols['10_caregiver'] = youth[caregiver_cols].idxmax(1)  
 
 # Caregiver's educational level/attainment
 youth_tidy_cols['11_birth_mother_edu'] = youth['QS1_18_PARENTEDUC1'].astype('Int64')
@@ -153,7 +153,6 @@ youth_tidy_cols['19c_access_barriers'] = pd.Series(index=youth.index, dtype='obj
 youth_tidy_cols['19c_access_barriers'][mask] = youth.loc[mask, teen_access_barrier_cols].idxmax(axis=1)
 youth_tidy_cols['19c_access_barriers'] = youth_tidy_cols['19c_access_barriers'].fillna('No_Experience')
 
-youth_tidy_cols['19c_access_barriers'] = youth[teen_access_barrier_cols].idxmax(axis=1, skipna=True)
 
 # Mentor 1
 # fix for 20b:
@@ -168,7 +167,6 @@ youth_tidy_cols['20b_teen_mentor1_figure'][mask] = youth.loc[mask, mentor_figure
 youth_tidy_cols['20b_teen_mentor1_figure'] = youth_tidy_cols['20b_teen_mentor1_figure'].fillna('No_Experience')
 
 
-youth_tidy_cols['20b_teen_mentor1_figure'] = youth[mentor_figure_cols].idxmax(axis=1, skipna=True)
 youth_tidy_cols['20c_teen_mentor1_form'] = youth['QS2_16_FORMAT_1']
 youth_tidy_cols['20d_teen_mentor1_type'] = youth['QS2_17_TYPE_1']
 youth_tidy_cols['20e_teen_mentor1_location'] = youth['QS2_18_LOCATION_1']
