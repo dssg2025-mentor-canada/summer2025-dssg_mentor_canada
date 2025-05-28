@@ -72,17 +72,6 @@ youth_tidy_cols['3_community_type'] = youth['QS1_3_COMMUNITYTYPE']
 # First nation identity
 youth_tidy_cols['4_indigenous_status'] = youth['QS1_4_INDIGENOUS']
 
-
-# Age
-youth_tidy_cols['age'] = youth['QS1_1_AGE']
-
-# Province 
-youth_tidy_cols['province'] = youth['QS1_2_PROV']
-
-# Community Type
-youth_tidy_cols['community_type'] = youth['QS1_3_COMMUNITYTYPE']
-
-
 # Ethnicity
 ethnicity_cols = youth.loc[:, 'Race_SouthAsian':'Race_Unsure'].columns
 youth[ethnicity_cols] = youth[ethnicity_cols].apply(pd.to_numeric, errors='coerce')
