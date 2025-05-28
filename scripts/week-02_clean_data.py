@@ -143,6 +143,7 @@ youth_tidy_cols['19c_access_barriers'] = pd.Series(index=youth.index, dtype='obj
 youth_tidy_cols['19c_access_barriers'][mask] = youth.loc[mask, teen_access_barrier_cols].idxmax(axis=1)
 youth_tidy_cols['19c_access_barriers'] = youth_tidy_cols['19c_access_barriers'].fillna('No_Experience')
 
+youth_tidy_cols['19c_access_barriers'] = youth[teen_access_barrier_cols].idxmax(axis=1, skipna=True)
 
 # Mentor 1
 # fix for 20b:
@@ -157,6 +158,7 @@ youth_tidy_cols['20b_teen_mentor1_figure'][mask] = youth.loc[mask, mentor_figure
 youth_tidy_cols['20b_teen_mentor1_figure'] = youth_tidy_cols['20b_teen_mentor1_figure'].fillna('No_Experience')
 
 
+youth_tidy_cols['20b_teen_mentor1_figure'] = youth[mentor_figure_cols].idxmax(axis=1, skipna=True)
 youth_tidy_cols['20c_teen_mentor1_form'] = youth['QS2_16_FORMAT_1']
 youth_tidy_cols['20d_teen_mentor1_type'] = youth['QS2_17_TYPE_1']
 youth_tidy_cols['20e_teen_mentor1_location'] = youth['QS2_18_LOCATION_1']
