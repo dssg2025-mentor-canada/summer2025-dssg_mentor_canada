@@ -59,6 +59,16 @@ youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv')
 # Dictionary to collect all new columns
 youth_tidy_cols = {}
 
+# Age
+youth_tidy_cols['age'] = youth['QS1_1_AGE']
+
+# Province 
+youth_tidy_cols['province'] = youth['QS1_2_PROV']
+
+# Community Type
+youth_tidy_cols['community_type'] = youth['QS1_3_COMMUNITYTYPE']
+
+
 # Ethnicity
 ethnicity_cols = youth.loc[:, 'Race_SouthAsian':'Race_Unsure'].columns
 youth[ethnicity_cols] = youth[ethnicity_cols].apply(pd.to_numeric, errors='coerce')
@@ -285,11 +295,11 @@ named_neg_life_event_cols = [
 for named_col, unnamed_col in zip(named_neg_life_event_cols, unnamed_neg_life_event_cols):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
-# Adult
+# Adult / current section:
 youth_tidy_cols['adult_mentor'] = youth['QS4_1_MEANINGFULPERSON']
 youth_tidy_cols['adult_mentor_experience'] = youth['QS4_2_MEANINGFULPERSON']
 
-# Current social capital / access / quality of life
+## Current social capital / access / quality of life
 unnamed_social_cap_cols = [
     'QS4_7_SOCIALCAPITAL1_1_1', 'QS4_7_SOCIALCAPITAL1_2_2',
     'QS4_7_SOCIALCAPITAL1_3_3', 'QS4_7_SOCIALCAPITAL1_4_4'
@@ -301,10 +311,10 @@ named_social_cap_cols = [
 for named_col, unnamed_col in zip(named_social_cap_cols, unnamed_social_cap_cols):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
-# Current perceived mental health rating
+## Current perceived mental health rating
 youth_tidy_cols['mental_health_rating'] = youth['QS4_9_MENTALHEALTH']
 
-# Current well-being
+## Current well-being
 unnamed_well_being = [
     'QS4_10_MENTALWELLBE1_1_1', 'QS4_10_MENTALWELLBE1_2_2', 'QS4_10_MENTALWELLBE1_3_3',
     'QS4_10_MENTALWELLBE1_4_4', 'QS4_10_MENTALWELLBE1_5_5', 'QS4_10_MENTALWELLBE1_6_6',
@@ -317,7 +327,7 @@ named_well_being = [
 for named_col, unnamed_col in zip(named_well_being, unnamed_well_being):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
-# Current sense of belonging
+## Current sense of belonging
 youth_tidy_cols['belongingness'] = youth['QS4_11_BELONGING']
 
 # Current negative life events
@@ -332,13 +342,16 @@ named_adult_neg_events = [
 for named_col, unnamed_col in zip(named_adult_neg_events, unnamed_adult_neg_events):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
-# Currently being a mentor
+## Currently being a mentor
 youth_tidy_cols['adult_being_mentor'] = youth['QS4_17_SERVEDASM']
 # Currently being a formal/informal mentor
 youth_tidy_cols['adult_being_mentor_form'] = youth['QS4_18_CURRENTOR']
 
-# Create the tidy DataFrame using pd.concat
+## Create the tidy dataframe using concat
 youth_tidy = pd.concat(youth_tidy_cols, axis=1)
 
-# Ensure the index matches the original youth DataFrame
+## Ensure the index matches the original youth dataframe
 youth_tidy.index = youth.index
+
+# Save final cleaned data
+youth_tidy.to_csv('../../dssg-2025-mentor-canada/Data/youth_tidy.csv')
