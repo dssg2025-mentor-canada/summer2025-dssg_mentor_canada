@@ -77,10 +77,19 @@ ethnicity_cols = youth.loc[:, 'Race_SouthAsian':'Race_Unsure'].columns
 youth[ethnicity_cols] = youth[ethnicity_cols].apply(pd.to_numeric, errors='coerce')
 youth_tidy_cols['4_ethnicity'] = youth[ethnicity_cols].idxmax(1)
 
+# Newcomer
+youth_tidy_cols['5_newcomer'] = youth['QS1_7_NEWCOMER']
+
+
 # Gender Identity
-gender_cols = youth.loc[:, 'Gender_Woman':'Gender_Other'].columns
+gender_cols = youth.loc[:, 'Gender_Woman':'Gender_PreferNotToSay'].columns
 youth[gender_cols] = youth[gender_cols].apply(pd.to_numeric, errors='coerce')
 youth_tidy_cols['6_gender_identity'] = youth[gender_cols].idxmax(1)
+
+# Transgender 
+youth_tidy_cols['7_trans_ident'] = youth['QS1_10_TRANSUM']
+# Sexual orientation
+youth_tidy_cols['8_sexual_orient'] = youth['QS1_11_SEXUALO']
 
 # Perceived / Subclinical Disability
 youth_tidy_cols['9_subclinical_disability'] = youth['QS1_12_DISABIL']
@@ -105,17 +114,9 @@ youth_tidy_cols['13a_further_edu_level'] = youth['QS1_22_HIGHESTEDU']
 youth_tidy_cols['14_employment'] = youth['QS1_25_EMPLOYMENT']
 
 # Yearly income estimate
-youth['15_yearly_income'] = youth['QS1_28_EMPLOYMENT_calculated'].fillna(0)
-# youth['15b_yearly_from_month'] = youth['Month_income'].fillna(0) * 12
-# youth['yearly_from_seimimonth'] = youth['Semimonth_income'].fillna(0) * 24
-# youth['yearly_from_biweek'] = youth['Biweek_income'].fillna(0) * 26
-# youth['yearly_from_week'] = youth['Week_income'].fillna(0) * 52
-# youth['total_yearly_income'] = (
-#     youth['yearly_from_month'] +
-#     youth['yearly_from_seimimonth'] +
-#     youth['yearly_from_biweek'] +
-#     youth['yearly_from_week']
-# )
+# note: fiil.na(0) is commented out because it will likely intruduce skewness towards 0
+youth['15_yearly_income'] = youth['QS1_28_EMPLOYMENT_calculated']# .fillna(0) 
+
 youth_tidy_cols['15_yearly_income'] = youth['15_yearly_income']
 
 # Presence of meaningful person in early life 6-11
