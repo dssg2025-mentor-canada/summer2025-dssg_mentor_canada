@@ -10,6 +10,7 @@ format:
 ## Python: Preprocessing and Cleaning
 
 ### Library Imports
+
 ```{python}
 import pandas as pd
 import os
@@ -43,6 +44,7 @@ youth = youth.drop(youth.columns[102:120], axis=1)
 ```
 
 ### Indicate Text Columns
+
 ```{python}
 text_columns = ['QS1_6_Other', 'QS1_9_Other', 'QS1_11_Other', 'QS1_16_Other', 'QS1_18_Other_1', 'QS1_18_Other_2',
                  'QS1_22_Other', 'QS1_26_Other', 'QS1_27_Other', 'QS2_13_Other', 'QS2_14_MENTORID', 'QS2_14_MENTORID_2', 'QS2_14_MENTORID_3', 'QS2_18_LOCATION_1_O', 'QS2_15_RELATIONSHIP2', 'QS2_17_TYPE_2_Other', 'QS2_18_LOCATION_2_O', 'QS2_15_RELATIONSHIP3',
@@ -53,6 +55,7 @@ text_columns = ['QS1_6_Other', 'QS1_9_Other', 'QS1_11_Other', 'QS1_16_Other', 'Q
 ### Encode Columns
 
 #### Make column names interpertable for Q4 (Race)
+
 ```{python}
 
 youth.rename(columns={
@@ -118,8 +121,7 @@ youth['total_yearly_income'] = (youth['yearly_from_month'] +
                                 youth['yearly_from_week'])
 ```
 
-
-#### Make column names interpertable for Q19c1 (Access Barriers) 
+#### Make column names interpertable for Q19c1 (Access Barriers)
 
 ```{python}
 youth.rename(columns={
@@ -220,7 +222,6 @@ youth.rename(columns={
   }, inplace=True)
 ```
 
-
 #### Make column names interpertable for 23a (If youth initated, why?)
 
 ```{python}
@@ -247,6 +248,7 @@ youth.rename(columns={
 ```
 
 #### Make column names interpertable for 25a (Match criteria)
+
 ```{python}
 youth.rename(columns={
     'QS2_29_MATCHCRITERI1_1_1' : 'Match_GenderIdentity',
@@ -261,7 +263,6 @@ youth.rename(columns={
     'QS2_29_MATCHCRITERI1_10_10' : 'Match_Unsure',
     'QS2_29_MATCHCRITERI1_11_11' : 'Match_PreferNotToSay'}, inplace=True)
 ```
-
 
 #### Make column names interpertable for 29 (Transitions)
 
@@ -285,6 +286,7 @@ youth.rename(columns={
 ```
 
 #### Make column names interperatble for 33 (Negative Mentor Experiences)
+
 ```{python}
 
 youth.rename(columns={
@@ -310,5 +312,5 @@ youth.rename(columns={
 ```
 
 ```{python}
-youth.to_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv')
+# youth.to_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv')
 ```
