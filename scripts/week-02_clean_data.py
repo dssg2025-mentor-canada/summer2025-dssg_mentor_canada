@@ -119,30 +119,30 @@ youth['15_yearly_income'] = youth['QS1_28_EMPLOYMENT_calculated'].fillna(0)
 youth_tidy_cols['15_yearly_income'] = youth['15_yearly_income']
 
 # Presence of meaningful person in early life 6-11
-youth_tidy_cols['early_meaningful_person'] = youth['QS2_1_MEANINGFULP']
+youth_tidy_cols['16_early_meaningful_person'] = youth['QS2_1_MEANINGFULP']
 
 # Presence of meaningful person in teen years 12-18
-youth_tidy_cols['teen_meaningful_person'] = youth['QS2_2_MEANINGFULP']
+youth_tidy_cols['17_teen_meaningful_person'] = youth['QS2_2_MEANINGFULP']
 
 # Presence of mentor in early life 6-11
-youth_tidy_cols['early_mentor'] = youth['QS2_3_PRESENCEOFM']
+youth_tidy_cols['18_early_mentor'] = youth['QS2_3_PRESENCEOFM']
 # Formal/informal mentor format in early life 6-11
-youth_tidy_cols['early_mentor_form'] = youth['QS2_4_MENTOR61FOR']
+youth_tidy_cols['18a_early_mentor_form'] = youth['QS2_4_MENTOR61FOR']
 # Rating mentor experience in early life 6-11
-youth_tidy_cols['early_mentor_exp'] = youth['QS2_6_MENTOREXPER']
+youth_tidy_cols['18a1_early_mentor_exp'] = youth['QS2_6_MENTOREXPER']
 # Mentor seeking in early life 6-11
-youth_tidy_cols['early_mentor_seek'] = youth['QS2_7_MENTOR611SE']
+youth_tidy_cols['18c_early_mentor_seek'] = youth['QS2_7_MENTOR611SE']
 # Difficult mentor access in early life 6-11
-youth_tidy_cols['early_mentor_unmet_access'] = youth['QS2_8_UNMETNEED61']
+youth_tidy_cols['18d_early_mentor_unmet_access'] = youth['QS2_8_UNMETNEED61']
 
 # Presence of mentor in teen years 12-18
-youth_tidy_cols['teen_mentor'] = youth['QS2_9_PRESENCEOFA']
+youth_tidy_cols['19_teen_mentor'] = youth['QS2_9_PRESENCEOFA']
 # Number of mentors in teen years 12-18
-youth_tidy_cols['teen_mentor_n'] = youth['QS2_10_NUMBEROFME_cat'] # used the aggregated one (cat)
+youth_tidy_cols['19a_teen_mentor_n'] = youth['QS2_10_NUMBEROFME_cat'] # used the aggregated one (cat)
 # Mentor seeking in teen years 12-18
-youth_tidy_cols['teen_mentor_seek'] = youth['QS2_11_MENTOR1218']
+youth_tidy_cols['19b_teen_mentor_seek'] = youth['QS2_11_MENTOR1218']
 # Unmet needs in teen years 12-18
-youth_tidy_cols['teen_mentor_unmet_access'] = youth['QS2_12_UNMETNEED1']
+youth_tidy_cols['19c_teen_mentor_unmet_access'] = youth['QS2_12_UNMETNEED1']
 # # Access barrier to mentor in teen years 12-18
 # teen_access_barrier_cols = youth.loc[:, 'Barrier_Parent':'Barrier_PreferNotToSay'].columns
 # youth[teen_access_barrier_cols] = youth[teen_access_barrier_cols].apply(pd.to_numeric, errors='coerce')
@@ -151,9 +151,9 @@ youth_tidy_cols['teen_mentor_unmet_access'] = youth['QS2_12_UNMETNEED1']
 teen_access_barrier_cols = youth.loc[:, 'Barrier_Parent':'Barrier_PreferNotToSay'].columns
 youth[teen_access_barrier_cols] = youth[teen_access_barrier_cols].apply(pd.to_numeric, errors='coerce')
 mask = youth[teen_access_barrier_cols].notna().any(axis=1)
-youth_tidy_cols['19c_access_barriers'] = pd.Series(index=youth.index, dtype='object')
-youth_tidy_cols['19c_access_barriers'][mask] = youth.loc[mask, teen_access_barrier_cols].idxmax(axis=1)
-youth_tidy_cols['19c_access_barriers'] = youth_tidy_cols['19c_access_barriers'].fillna('No_Experience')
+youth_tidy_cols['19c1_access_barriers'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['19c1_access_barriers'][mask] = youth.loc[mask, teen_access_barrier_cols].idxmax(axis=1)
+youth_tidy_cols['19c1_access_barriers'] = youth_tidy_cols['19c_access_barriers'].fillna('No_Experience')
 
 
 # Mentor 1
@@ -164,9 +164,9 @@ youth_tidy_cols['19c_access_barriers'] = youth_tidy_cols['19c_access_barriers'].
 mentor_figure_cols = youth.loc[:, 'Relation1_SchoolStaff':'Relation1_Other'].columns
 youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
 mask = youth[mentor_figure_cols].notna().any(axis=1)
-youth_tidy_cols['20b_teen_mentor1_figure'] = pd.Series(index=youth.index, dtype='object')
-youth_tidy_cols['20b_teen_mentor1_figure'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
-youth_tidy_cols['20b_teen_mentor1_figure'] = youth_tidy_cols['20b_teen_mentor1_figure'].fillna('No_Experience')
+youth_tidy_cols['20b_teen_mentor1_relation'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20b_teen_mentor1_relation'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
+youth_tidy_cols['20b_teen_mentor1_relation'] = youth_tidy_cols['20b_teen_mentor1_relation'].fillna('No_Experience')
 
 
 youth_tidy_cols['20c_teen_mentor1_form'] = youth['QS2_16_FORMAT_1']
@@ -187,7 +187,7 @@ youth_tidy_cols['20h_teen_mentor1_focus'][mask] = youth.loc[mask, teen_service_f
 youth_tidy_cols['20h_teen_mentor1_focus'] = youth_tidy_cols['20h_teen_mentor1_focus'].fillna('No_Experience')
 
 
-youth_tidy_cols['20g_teen_mentor1_canada'] = youth['QS2_22_GEOLOCATI1']
+youth_tidy_cols['20i_teen_mentor1_geolocation'] = youth['QS2_22_GEOLOCATI1']
 
 # Mentor 2
 ## fix for mentor2 20b:
@@ -198,9 +198,9 @@ youth_tidy_cols['20g_teen_mentor1_canada'] = youth['QS2_22_GEOLOCATI1']
 mentor_figure_cols = youth.loc[:, 'Relation2_SchoolStaff':'Relation2_Other'].columns
 youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
 mask = youth[mentor_figure_cols].notna().any(axis=1)
-youth_tidy_cols['20b_teen_mentor2_figure'] = pd.Series(index=youth.index, dtype='object')
-youth_tidy_cols['20b_teen_mentor2_figure'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
-youth_tidy_cols['20b_teen_mentor2_figure'] = youth_tidy_cols['20b_teen_mentor2_figure'].fillna('No_Experience')
+youth_tidy_cols['20b_teen_mentor2_relation'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20b_teen_mentor2_relation'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
+youth_tidy_cols['20b_teen_mentor2_relation'] = youth_tidy_cols['20b_teen_mentor2_relation'].fillna('No_Experience')
 
 
 youth_tidy_cols['20c_teen_mentor2_form'] = youth['QS2_16_FORMAT_2']
@@ -219,7 +219,7 @@ youth_tidy_cols['20h_teen_mentor2_focus'] = pd.Series(index=youth.index, dtype='
 youth_tidy_cols['20h_teen_mentor2_focus'][mask] = youth.loc[mask, teen_service_focus_cols].idxmax(axis=1)
 youth_tidy_cols['20h_teen_mentor2_focus'] = youth_tidy_cols['20h_teen_mentor2_focus'].fillna('No_Experience')
 
-youth_tidy_cols['20g_teen_mentor2_canada'] = youth['QS2_22_GEOLOCATI2']
+youth_tidy_cols['20i_teen_mentor2_geolocation'] = youth['QS2_22_GEOLOCATI2']
 
 # Mentor 3
 # Fix for 20b mentor 3:
@@ -229,9 +229,9 @@ youth_tidy_cols['20g_teen_mentor2_canada'] = youth['QS2_22_GEOLOCATI2']
 mentor_figure_cols = youth.loc[:, 'Relation3_SchoolStaff':'Relation3_Other'].columns
 youth[mentor_figure_cols] = youth[mentor_figure_cols].apply(pd.to_numeric, errors='coerce')
 mask = youth[mentor_figure_cols].notna().any(axis=1)
-youth_tidy_cols['20b_teen_mentor3_figure'] = pd.Series(index=youth.index, dtype='object')
-youth_tidy_cols['20b_teen_mentor3_figure'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
-youth_tidy_cols['20b_teen_mentor3_figure'] = youth_tidy_cols['20b_teen_mentor3_figure'].fillna('No_Experience')
+youth_tidy_cols['20b_teen_mentor3_relation'] = pd.Series(index=youth.index, dtype='object')
+youth_tidy_cols['20b_teen_mentor3_relation'][mask] = youth.loc[mask, mentor_figure_cols].idxmax(axis=1)
+youth_tidy_cols['20b_teen_mentor3_relation'] = youth_tidy_cols['20b_teen_mentor3_relation'].fillna('No_Experience')
 
 youth_tidy_cols['20c_teen_mentor3_form'] = youth['QS2_16_FORMAT_3']
 youth_tidy_cols['20d_teen_mentor3_type'] = youth['QS2_17_TYPE_3']
@@ -250,6 +250,8 @@ mask = youth[teen_service_focus_cols].notna().any(axis=1)
 youth_tidy_cols['20h_teen_mentor3_focus'] = pd.Series(index=youth.index, dtype='object')
 youth_tidy_cols['20h_teen_mentor3_focus'][mask] = youth.loc[mask, teen_service_focus_cols].idxmax(axis=1)
 youth_tidy_cols['20h_teen_mentor3_focus'] = youth_tidy_cols['20h_teen_mentor3_focus'].fillna('No_Experience')
+
+youth_tidy_cols['20i_teen_mentor3_geolocation'] = youth['QS2_22_GEOLOCATI3']
 
 # Who initiated the mentor program
 youth_tidy_cols['23_mentor1_init'] = youth['QS2_25_YOUTHINIT1']
@@ -328,6 +330,7 @@ youth_tidy_cols['29_transition_independence'] = youth['Transition_IndependenceFr
 youth_tidy_cols['29_transition_funding_higher_edu'] = youth['Transition_FundingForTradeSchool-Collge-Uni']
 youth_tidy_cols['29_transition_none'] = youth['Transition_NoneOfAbove']
 youth_tidy_cols['29_transition_other'] = youth['Transition_Other']
+youth_tidy_cols['29_transition_unsure'] = youth['Transition_Unsure']
 youth_tidy_cols['29_transition_prefer_not_say'] = youth['Transition_PreferNotToSay']
 
 # Skills taught by / influence from mentors
@@ -380,29 +383,29 @@ unnamed_neg_life_event_cols = [
     'QS3_4_LIFEEVENTS1_18_18'
 ]
 named_neg_life_event_cols = [
-    'parent_prison', 'school_absence', 'school_repeat', 'school_suspended', 'criminal_record',
-    'freq_school_change', 'lack_school_access', 'early_parenthood', 'caregiver_role',
-    'work_to_support_family', 'early_homelessness', 'food_bank_use', 'youth_in_care'
+    '38_parent_prison', '38_school_absence', '38_school_repeat', '38_school_suspended', '38_criminal_record',
+    '38_freq_school_change', '38_lack_school_access', '38_early_parenthood', '38_caregiver_role',
+    '38_work_to_support_family', '38_early_homelessness', '38_food_bank_use', '38_youth_in_care'
 ]
 for named_col, unnamed_col in zip(named_neg_life_event_cols, unnamed_neg_life_event_cols):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
 # Adult / current section:
-youth_tidy_cols['adult_mentor'] = youth['QS4_1_MEANINGFULPERSON']
-youth_tidy_cols['adult_mentor_experience'] = youth['QS4_2_MEANINGFULPERSON']
+youth_tidy_cols['40_adult_mentor'] = youth['QS4_1_MEANINGFULPERSON']
+youth_tidy_cols['40a_adult_mentor_experience'] = youth['QS4_2_MEANINGFULPERSON']
 
 unnamed_social_cap_cols = [
     'QS4_7_SOCIALCAPITAL1_1_1', 'QS4_7_SOCIALCAPITAL1_2_2',
     'QS4_7_SOCIALCAPITAL1_3_3', 'QS4_7_SOCIALCAPITAL1_4_4'
 ]
 named_social_cap_cols = [
-    'household_help_access', 'financial_advice_access',
-    'emotional_support_access', 'career_advice_access'
+    '43_household_help_access', '43_financial_advice_access',
+    '43_emotional_support_access', '43_career_advice_access'
 ]
 for named_col, unnamed_col in zip(named_social_cap_cols, unnamed_social_cap_cols):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
-youth_tidy_cols['mental_health_rating'] = youth['QS4_9_MENTALHEALTH']
+youth_tidy_cols['45_mental_health_rating'] = youth['QS4_9_MENTALHEALTH']
 
 unnamed_well_being = [
     'QS4_10_MENTALWELLBE1_1_1', 'QS4_10_MENTALWELLBE1_2_2', 'QS4_10_MENTALWELLBE1_3_3',
@@ -410,14 +413,14 @@ unnamed_well_being = [
     'QS4_10_MENTALWELLBE1_7_7'
 ]
 named_well_being = [
-    'optimism', 'perceived_capability', 'ease_going',
-    'problem_solve', 'mental_clarity', 'relatedness_to_others', 'decisiveness'
+    '46_optimism', '46_perceived_capability', '46_ease_going',
+    '46_problem_solve', '46_mental_clarity', '46_relatedness_to_others', '46_decisiveness'
 ]
 for named_col, unnamed_col in zip(named_well_being, unnamed_well_being):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
 # Current sense of belonging
-youth_tidy_cols['belongingness'] = youth['QS4_11_BELONGING']
+youth_tidy_cols['47_belonging'] = youth['QS4_11_BELONGING']
 
 # Current negative life events
 unnamed_adult_neg_events = [
@@ -425,16 +428,16 @@ unnamed_adult_neg_events = [
     'QS4_13_LIFEEVE1_4_4', 'QS4_13_LIFEEVE1_5_5', 'QS4_13_LIFEEVE1_6_6'
 ]
 named_adult_neg_events = [
-    'adult_arrested', 'adult_prison', 'adult_social_assistance',
-    'adult_child_services', 'adult_homeless', 'adult_food_banks'
+    '49_adult_arrested', '49_adult_prison', '49_adult_social_assistance',
+    '49_adult_child_services', '49_adult_homeless', '49_adult_food_banks'
 ]
 for named_col, unnamed_col in zip(named_adult_neg_events, unnamed_adult_neg_events):
     youth_tidy_cols[named_col] = youth[unnamed_col]
 
 ## Currently being a mentor
-youth_tidy_cols['adult_being_mentor'] = youth['QS4_17_SERVEDASM']
+youth_tidy_cols['51_adult_being_mentor'] = youth['QS4_17_SERVEDASM']
 # Currently being a formal/informal mentor
-youth_tidy_cols['adult_being_mentor_form'] = youth['QS4_18_CURRENTOR']
+youth_tidy_cols['51a_adult_being_mentor_form'] = youth['QS4_18_CURRENTOR']
 
 ## Create the tidy dataframe using concat
 youth_tidy = pd.concat(youth_tidy_cols, axis=1)
