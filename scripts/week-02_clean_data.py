@@ -67,10 +67,10 @@ youth_tidy_cols['1_age'] = youth['QS1_1_AGE']
 youth_tidy_cols['2_province'] = youth['QS1_2_PROV']
 
 # Community type
-youth_tidy_cols['3_community_type'] = youth['QS1_3_COMMUNITYTYPE']
+youth_tidy_cols['2b_community_type'] = youth['QS1_3_COMMUNITYTYPE']
 
 # First nation identity
-youth_tidy_cols['4_indigenous_status'] = youth['QS1_4_INDIGENOUS']
+youth_tidy_cols['3_indigenous_status'] = youth['QS1_4_INDIGENOUS']
 
 # Ethnicity
 ethnicity_cols = youth.loc[:, 'Race_SouthAsian':'Race_Unsure'].columns
@@ -138,7 +138,7 @@ youth_tidy_cols['early_mentor_unmet_access'] = youth['QS2_8_UNMETNEED61']
 # Presence of mentor in teen years 12-18
 youth_tidy_cols['teen_mentor'] = youth['QS2_9_PRESENCEOFA']
 # Number of mentors in teen years 12-18
-youth_tidy_cols['teen_mentor_n'] = youth['QS2_10_NUMBEROFME']
+youth_tidy_cols['teen_mentor_n'] = youth['QS2_10_NUMBEROFME_cat'] # used the aggregated one (cat)
 # Mentor seeking in teen years 12-18
 youth_tidy_cols['teen_mentor_seek'] = youth['QS2_11_MENTOR1218']
 # Unmet needs in teen years 12-18
@@ -365,8 +365,8 @@ unnamed_self_worth_cols = [
     'QS3_1_GLOBALSELFWOR1_7_7', 'QS3_1_GLOBALSELFWOR1_8_8'
 ]
 named_self_worth_cols = [
-    'teen_capability', 'teen_perceived_failure', 'teen_happiness', 'teen_ident_alignment',
-    'teen_shame', 'teen_contentment', 'teen_identity_goal', 'teen_lack_pride'
+    '36a_teen_capability', '36b_teen_perceived_failure', '36c_teen_happiness', '36d_teen_ident_alignment',
+    '36e_teen_shame', '36f_teen_contentment', '36g_teen_identity_goal', '36h_teen_lack_pride'
 ]
 for named_col, unnamed_col in zip(named_self_worth_cols, unnamed_self_worth_cols):
     youth_tidy_cols[named_col] = youth[unnamed_col]
