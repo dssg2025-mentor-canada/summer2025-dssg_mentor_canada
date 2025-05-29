@@ -153,7 +153,7 @@ youth[teen_access_barrier_cols] = youth[teen_access_barrier_cols].apply(pd.to_nu
 mask = youth[teen_access_barrier_cols].notna().any(axis=1)
 youth_tidy_cols['19c1_access_barriers'] = pd.Series(index=youth.index, dtype='object')
 youth_tidy_cols['19c1_access_barriers'][mask] = youth.loc[mask, teen_access_barrier_cols].idxmax(axis=1)
-youth_tidy_cols['19c1_access_barriers'] = youth_tidy_cols['19c_access_barriers'].fillna('No_Experience')
+youth_tidy_cols['19c1_access_barriers'] = youth_tidy_cols['19c1_access_barriers'].fillna('No_Experience')
 
 
 # Mentor 1
@@ -330,7 +330,6 @@ youth_tidy_cols['29_transition_independence'] = youth['Transition_IndependenceFr
 youth_tidy_cols['29_transition_funding_higher_edu'] = youth['Transition_FundingForTradeSchool-Collge-Uni']
 youth_tidy_cols['29_transition_none'] = youth['Transition_NoneOfAbove']
 youth_tidy_cols['29_transition_other'] = youth['Transition_Other']
-youth_tidy_cols['29_transition_unsure'] = youth['Transition_Unsure']
 youth_tidy_cols['29_transition_prefer_not_say'] = youth['Transition_PreferNotToSay']
 
 # Skills taught by / influence from mentors
