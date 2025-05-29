@@ -3,7 +3,7 @@ project:
   output-dir: docs
 
 book:
-  title: "Mentor Canada DSSG"
+  title: "Mentor Canada     Data Science for Social Good (DSSG) Fellowship Project"
   reader-mode: true
   chapters:
     - index.qmd

@@ -11,19 +11,18 @@ format:
 
 ### Library imports
 ```{r}
+#| output: false
 library(reticulate)
 use_condaenv("dssg_env", required = TRUE)
 py_config()
 ```
 
 ```{python}
+#| output: false
 import pandas as pd
 import os
 from siuba import _, group_by, summarize, filter, select, mutate, arrange, count
 import matplotlib.pyplot as plt
-print(os.getcwd()) 
-# report_directory = "quarto/" # setting working directory into the quarto folder to ensure quarto/code execution consistency
-# os.chdir(report_directory)
 ```
 
 ### Data Import

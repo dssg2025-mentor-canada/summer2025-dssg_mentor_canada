@@ -1,4 +1,4 @@
-# Preface {.unnumbered}
+# Welcome! {.unnumbered}
 
 This website shares result reports for the **Mentor Canada project**. This data science project is supervised under the [**Data Science for Social Good (DSSG)**](https://dsi.ubc.ca/data-science-social-good/2025) fellowhsip program at UBC's Data Science Institute.
 
