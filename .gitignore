@@ -180,3 +180,4 @@ cython_debug/
 .Rhistory
 /.quarto/
 .DS_Store
+.Rproj.user

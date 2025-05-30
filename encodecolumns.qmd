@@ -27,8 +27,12 @@ youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.c
 ### Dropping Columns
 
 ```{python}
-# drop columns up to AO
-youth = youth.iloc[:, 41:]
+# drop columns up to AO, with the exception of geo_postcode_fsa
+cols_to_drop_1 = youth.columns[0:6]
+youth = youth.drop(columns = cols_to_drop_1)
+
+cols_to_drop_1 = youth.columns[1:35]
+youth = youth.drop(columns = cols_to_drop_1)
 
 # drop logic + validation columns 
 youth = youth.drop(columns=['QAge_Validation', 'Logic_QS1_6_Qtext', 'Logic_Qtext', 'QS1_8_Validation', 'Logic_QS1_26_Ask', 'QS1_29_Validation', 
@@ -40,7 +44,9 @@ youth = youth.drop(columns=['QAge_Validation', 'Logic_QS1_6_Qtext', 'Logic_Qtext
                               ])
 
 # drop parent education columns (keeping first two parent education columns)
-youth = youth.drop(youth.columns[102:120], axis=1)
+parent_edu_cols = youth.loc[:, 'QS1_18_Other_2':'QS1_18_Other_11'] # CX to DP
+youth = youth.drop('QS1_18_Other_1', axis = 1) # CV
+youth = youth.drop(columns = parent_edu_cols.columns) # CV
 ```
 
 ### Indicate Text Columns
@@ -312,5 +318,5 @@ youth.rename(columns={
 ```
 
 ```{python}
-# youth.to_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv')
+# youth.to_csv('../../dssg-2025-mentor-canada/Data/encodedselectall_02.csv')
 ```

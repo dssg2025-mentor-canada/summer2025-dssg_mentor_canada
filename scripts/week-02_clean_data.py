@@ -139,7 +139,7 @@ youth_tidy_cols['18d_early_mentor_unmet_access'] = youth['QS2_8_UNMETNEED61']
 # Presence of mentor in teen years 12-18
 youth_tidy_cols['19_teen_mentor'] = youth['QS2_9_PRESENCEOFA']
 # Number of mentors in teen years 12-18
-youth_tidy_cols['19a_teen_mentor_n'] = youth['QS2_10_NUMBEROFME_cat'] # used the aggregated one (cat)
+youth_tidy_cols['19a_teen_mentor_n'] = youth['QS2_10_NUMBEROFME'] 
 # Mentor seeking in teen years 12-18
 youth_tidy_cols['19b_teen_mentor_seek'] = youth['QS2_11_MENTOR1218']
 # Unmet needs in teen years 12-18
