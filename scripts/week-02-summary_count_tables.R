@@ -1,4 +1,5 @@
 library(tidyverse)
+library(janitor)
 
 youth <- read_rds('../../dssg-2025-mentor-canada/Data/processed_youth_factorized.RDS')
 glimpse(youth)
@@ -23,9 +24,9 @@ mentor_cols_to_count <- c('16_early_meaningful_person', '17_teen_meaningful_pers
                           '19_teen_mentor', '19c_teen_mentor_unmet_access', '20c_teen_mentor1_form',
                           '20c_teen_mentor2_form', '20c_teen_mentor3_form', '40_adult_mentor')
 
-# Function description: for every specified column, group_by() is and then apply summarize n() to it. 
+# Function 1 (count_loop) description: for every specified column, group_by() is and then apply summarize n() to it. 
 
-# Function:
+# Function 1:
 count_loop <- function(data, list_cols_to_count) {
   for (col in list_cols_to_count) {
     one_n_df <- data |>
@@ -39,8 +40,51 @@ count_loop <- function(data, list_cols_to_count) {
 }
 
 # Use count_loop function with columns specified in `cols_to_count`:
-count_loop(data = youth, list_cols_to_count = cols_to_count)
+list_of_df_spec_cols <- count_loop(data = youth, list_cols_to_count = cols_to_count)
 # Use count_loop function with columns specified in `mentor_cols_to_count`:
 count_loop(data = youth, list_cols_to_count = mentor_cols_to_count)
 
+# Function 2 (widen_count_df) description:
+# Attach column name to each grouped by (group_by) categorical level in each count table
+# within a list of count tables. Each count table is then applied with pivot_wider().
+# All the wide tables is then combined into one large dataframe. 
+
+combined_count_df <- data.frame()
+
+for (df in list_of_df_spec_cols) { # draft for function (to be deleted later)
+  col_name <- colnames(df)[1]
+  count_col <- colnames(df)[2]
+  wider_df <- df |>
+    pivot_wider(names_from = all_of(col_name),
+                values_from = all_of(count_col),
+                names_prefix = col_name) |>
+    janitor::clean_names()
+  
+  if (nrow(combined_count_df) == 0) {
+    combined_count_df <- wider_df}
+  else {
+    combined_count_df <- cbind(combined_count_df, wider_df)}
+  }
+
+
+widen_count_df <- function(list_of_count_df) {
+  for (df in list_of_count_df) {
+    col_name <- colnames(df)[1]
+    count_col <- colnames(df)[2]
+    wider_df <- df |>
+                pivot_wider(names_from = all_of(col_name),
+                            values_from = all_of(count_col),
+                            names_prefix = col_name) |>
+                janitor::clean_names()
+    
+    if (nrow(combined_count_df) == 0) {
+      combined_count_df <- wider_df
+      }
+    else {
+      combined_count_df <- cbind(combined_count_df, wider_df)}
+    }
+  return(combined_count_df)
+}
+
+widen_count_df(list_of_df_spec_cols)
 
