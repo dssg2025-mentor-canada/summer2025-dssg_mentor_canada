@@ -59,7 +59,10 @@ youth = pd.read_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv', l
 
 # Dictionary to collect all new columns
 youth_tidy_cols = {}
-	
+
+# Postal code FSA:
+youth_tidy_cols['0_postalcode_fsa'] = youth['geo_postcode_fsa']
+
 # Age
 youth_tidy_cols['1_age'] = youth['QS1_1_AGE']
 

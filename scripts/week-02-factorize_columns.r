@@ -1,7 +1,6 @@
 library(tidyverse)
-library(tidymodels)
 
-youth <- read_csv('../../dssg-2025-mentor-canada/Data/youth_tidy.csv')
+youth <- read_csv('../../dssg-2025-mentor-canada/Data/youth_tidy.csv', col_select = -1)
 head(youth)
 
 # 11_birth_mother_edu, 11_birth_father_edu, 15_yearly_income
@@ -31,6 +30,10 @@ youth <- youth |>
           mutate(across(`32_mentor_helpfulness`:`45_mental_health_rating`, as_factor)) |>
           mutate(`47_belonging` = as_factor(`47_belonging`)) |> 
           mutate(across(`51_adult_being_mentor`:`51a_adult_being_mentor_form`, as_factor))
+
+glimpse(youth)
+
+write_rds(youth, '../../dssg-2025-mentor-canada/Data/processed_youth_factorized.RDS')
   
   
   

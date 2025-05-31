@@ -318,5 +318,5 @@ youth.rename(columns={
 ```
 
 ```{python}
-# youth.to_csv('../../dssg-2025-mentor-canada/Data/encodedselectall_02.csv')
+youth.to_csv('../../dssg-2025-mentor-canada/Data/encodedselectall.csv', index=False)
 ```
