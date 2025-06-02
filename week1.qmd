@@ -155,6 +155,15 @@ ggplot( aes(x = QS1_9_gender, y = total_yearly_income, fill = QS1_9_gender)) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+```{r}
+youth |>
+filter(total_yearly_income < 29380) |>
+ggplot( aes(x = QS1_9_gender, y = total_yearly_income, fill = QS1_9_gender)) +
+    geom_bar(stat = "identity", position = "stack") +
+    labs(x = "Gender Indentity", y = "Total estimated yearly income ($)") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
 #### Comparing further education (`QS1_21_FURTHEDUCA`) and current income:
 
 ```{r}
@@ -184,6 +193,14 @@ youth |>
     labs(x = "Early life mentor experience (age 6-11 years old)", fill = "Current Mental Health Rating")
 ```
 
+```{r}
+youth |>
+    filter(!is.na(QS4_9_MENTALHEALTH_cat)) |>
+    drop_na(QS2_3_PRESENCEOFM_cat) |>
+    ggplot(aes(x = QS2_3_PRESENCEOFM_cat, fill = QS4_9_MENTALHEALTH_cat)) +
+    geom_bar(position = "fill") +
+    labs(x = "Early life mentor experience (age 6-11 years old)", fill = "Current Mental Health Rating")
+```
 
 ## Python: Visualization
 

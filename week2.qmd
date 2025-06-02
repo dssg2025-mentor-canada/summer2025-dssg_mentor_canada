@@ -1,5 +1,5 @@
 ---
-title: Data preprocessing
+title: Data preprocessing and More Visualizations
 format: 
     html:
         toc: true
@@ -10,6 +10,7 @@ format:
 ## Python: Preprocessing and Cleaning
 
 ### Library Imports
+
 ```{python}
 import pandas as pd
 import os
@@ -43,6 +44,7 @@ youth = youth.drop(youth.columns[102:120], axis=1)
 ```
 
 ### Indicate Text Columns
+
 ```{python}
 text_columns = ['QS1_6_Other', 'QS1_9_Other', 'QS1_11_Other', 'QS1_16_Other', 'QS1_18_Other_1', 'QS1_18_Other_2',
                  'QS1_22_Other', 'QS1_26_Other', 'QS1_27_Other', 'QS2_13_Other', 'QS2_14_MENTORID', 'QS2_14_MENTORID_2', 'QS2_14_MENTORID_3', 'QS2_18_LOCATION_1_O', 'QS2_15_RELATIONSHIP2', 'QS2_17_TYPE_2_Other', 'QS2_18_LOCATION_2_O', 'QS2_15_RELATIONSHIP3',
@@ -51,7 +53,9 @@ text_columns = ['QS1_6_Other', 'QS1_9_Other', 'QS1_11_Other', 'QS1_16_Other', 'Q
 ```
 
 ### Encode Columns
+
 #### Make column names interpertable for Q4
+
 ```{python}
 
 youth.rename(columns={
@@ -72,3 +76,23 @@ youth.rename(columns={
 }, inplace=True)
 
 ```
+
+# Viualizations (continued)
+
+## Distribution of Age variable
+
+![Age Distribution](outputs/01_age_distribution.png)Estimated yearly income distribution (15_yearly_income)
+
+-   ![Yearly Income Distribution](outputs/15_yearly_income_distribution.png) (Presented also in last week's notebook)
+
+-   Median as the central tendency is less susceptible to extreme outliers.
+
+## Income output and Transgender Identity
+
+![Income output and Transgender Identity](outputs/07_trans_identity-income.png) \## Early mentor experience and mental health rating outcome ![Early mentor experience and mental health rating outcome](outputs/18_early_mentor-mental_health.png)
+
+## Teen mentor experience and mental health rating outcome
+
+-   ![Teen mentor experience and mental health rating outcome](outputs/19_teen_mentor-mental_health.png) Similar trend compared to those who had early mentor experience.
+
+-   We can also tap into whether those individuals who had EME also tend to continue their mentorship into TME.
