@@ -2214,7 +2214,7 @@ vertical-align: -.125em;
 <h2 class="anchored" data-anchor-id="python-preprocessing-and-cleaning">Python: Preprocessing and Cleaning</h2>
 <section id="library-imports" class="level3">
 <h3 class="anchored" data-anchor-id="library-imports">Library Imports</h3>
-<div id="a730494a" class="cell" data-execution_count="1">
+<div id="18427912" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> siuba <span class="im">import</span> _, group_by, summarize, <span class="bu">filter</span>, select, mutate, arrange, count</span>
@@ -2223,32 +2223,38 @@ vertical-align: -.125em;
 </section>
 <section id="importing-data" class="level3">
 <h3 class="anchored" data-anchor-id="importing-data">Importing Data</h3>
-<div id="4595214c" class="cell" data-execution_count="2">
+<div id="d9973821" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> pd.read_csv(<span class="st">&#39;../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.csv&#39;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="dropping-columns" class="level3">
 <h3 class="anchored" data-anchor-id="dropping-columns">Dropping Columns</h3>
-<div id="c3c4d49e" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># drop columns up to AO</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.iloc[:, <span class="dv">41</span>:]</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># drop logic + validation columns </span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.drop(columns<span class="op">=</span>[<span class="st">&#39;QAge_Validation&#39;</span>, <span class="st">&#39;Logic_QS1_6_Qtext&#39;</span>, <span class="st">&#39;Logic_Qtext&#39;</span>, <span class="st">&#39;QS1_8_Validation&#39;</span>, <span class="st">&#39;Logic_QS1_26_Ask&#39;</span>, <span class="st">&#39;QS1_29_Validation&#39;</span>, </span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&#39;QS1_30_MValidatio&#39;</span>, <span class="st">&#39;QS1_30_SMValidati&#39;</span>, <span class="st">&#39;QS1_31_BWValidati&#39;</span>, <span class="st">&#39;QS1_32_WValidatio&#39;</span>, <span class="st">&#39;QS2_10_Validation&#39;</span>, <span class="st">&#39;Logic_QS2_14_Ask&#39;</span>,<span class="st">&#39;Logic_MENTORID1_1_1&#39;</span>,</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&#39;Logic_MENTORID1_2_2&#39;</span>, <span class="st">&#39;Logic_MENTORID1_3_3&#39;</span>, <span class="st">&#39;Logic_AP_QS2_23&#39;</span>, <span class="st">&#39;Logic_QS2_27_Ask&#39;</span>, <span class="st">&#39;Logic_QS2_34_Valid&#39;</span>, <span class="st">&#39;Logic_QS2_35_Ask&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_1_1&#39;</span>,</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&#39;Logic_QS2_35_Mask1_2_2&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_3_3&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_4_4&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_5_5&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_6_6&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_7_7&#39;</span>,</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&#39;Logic_QS2_35_Mask1_8_8&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_9_9&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_10_10&#39;</span>, <span class="st">&#39;QS4_14_Validatio&#39;</span>, <span class="st">&#39;QS4_15_Validatio&#39;</span>, <span class="st">&#39;QS4_19_Validatio&#39;</span>, <span class="st">&#39;QS4_23_Validatio&#39;</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>                              ])</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co"># drop parent education columns (keeping first two parent education columns)</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.drop(youth.columns[<span class="dv">102</span>:<span class="dv">120</span>], axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="04986b3a" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># drop columns up to AO, with the exception of geo_postcode_fsa</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>cols_to_drop_1 <span class="op">=</span> youth.columns[<span class="dv">0</span>:<span class="dv">6</span>]</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.drop(columns <span class="op">=</span> cols_to_drop_1)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>cols_to_drop_1 <span class="op">=</span> youth.columns[<span class="dv">1</span>:<span class="dv">35</span>]</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.drop(columns <span class="op">=</span> cols_to_drop_1)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># drop logic + validation columns </span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.drop(columns<span class="op">=</span>[<span class="st">&#39;QAge_Validation&#39;</span>, <span class="st">&#39;Logic_QS1_6_Qtext&#39;</span>, <span class="st">&#39;Logic_Qtext&#39;</span>, <span class="st">&#39;QS1_8_Validation&#39;</span>, <span class="st">&#39;Logic_QS1_26_Ask&#39;</span>, <span class="st">&#39;QS1_29_Validation&#39;</span>, </span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&#39;QS1_30_MValidatio&#39;</span>, <span class="st">&#39;QS1_30_SMValidati&#39;</span>, <span class="st">&#39;QS1_31_BWValidati&#39;</span>, <span class="st">&#39;QS1_32_WValidatio&#39;</span>, <span class="st">&#39;QS2_10_Validation&#39;</span>, <span class="st">&#39;Logic_QS2_14_Ask&#39;</span>,<span class="st">&#39;Logic_MENTORID1_1_1&#39;</span>,</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&#39;Logic_MENTORID1_2_2&#39;</span>, <span class="st">&#39;Logic_MENTORID1_3_3&#39;</span>, <span class="st">&#39;Logic_AP_QS2_23&#39;</span>, <span class="st">&#39;Logic_QS2_27_Ask&#39;</span>, <span class="st">&#39;Logic_QS2_34_Valid&#39;</span>, <span class="st">&#39;Logic_QS2_35_Ask&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_1_1&#39;</span>,</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&#39;Logic_QS2_35_Mask1_2_2&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_3_3&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_4_4&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_5_5&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_6_6&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_7_7&#39;</span>,</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>                              <span class="st">&#39;Logic_QS2_35_Mask1_8_8&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_9_9&#39;</span>, <span class="st">&#39;Logic_QS2_35_Mask1_10_10&#39;</span>, <span class="st">&#39;QS4_14_Validatio&#39;</span>, <span class="st">&#39;QS4_15_Validatio&#39;</span>, <span class="st">&#39;QS4_19_Validatio&#39;</span>, <span class="st">&#39;QS4_23_Validatio&#39;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>                              ])</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co"># drop parent education columns (keeping first two parent education columns)</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>parent_edu_cols <span class="op">=</span> youth.loc[:, <span class="st">&#39;QS1_18_Other_2&#39;</span>:<span class="st">&#39;QS1_18_Other_11&#39;</span>] <span class="co"># CX to DP</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.drop(<span class="st">&#39;QS1_18_Other_1&#39;</span>, axis <span class="op">=</span> <span class="dv">1</span>) <span class="co"># CV</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.drop(columns <span class="op">=</span> parent_edu_cols.columns) <span class="co"># CV</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="indicate-text-columns" class="level3">
 <h3 class="anchored" data-anchor-id="indicate-text-columns">Indicate Text Columns</h3>
-<div id="d1b628f6" class="cell" data-execution_count="4">
+<div id="9cb236c8" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>text_columns <span class="op">=</span> [<span class="st">&#39;QS1_6_Other&#39;</span>, <span class="st">&#39;QS1_9_Other&#39;</span>, <span class="st">&#39;QS1_11_Other&#39;</span>, <span class="st">&#39;QS1_16_Other&#39;</span>, <span class="st">&#39;QS1_18_Other_1&#39;</span>, <span class="st">&#39;QS1_18_Other_2&#39;</span>,</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                 <span class="st">&#39;QS1_22_Other&#39;</span>, <span class="st">&#39;QS1_26_Other&#39;</span>, <span class="st">&#39;QS1_27_Other&#39;</span>, <span class="st">&#39;QS2_13_Other&#39;</span>, <span class="st">&#39;QS2_14_MENTORID&#39;</span>, <span class="st">&#39;QS2_14_MENTORID_2&#39;</span>, <span class="st">&#39;QS2_14_MENTORID_3&#39;</span>, <span class="st">&#39;QS2_18_LOCATION_1_O&#39;</span>, <span class="st">&#39;QS2_15_RELATIONSHIP2&#39;</span>, <span class="st">&#39;QS2_17_TYPE_2_Other&#39;</span>, <span class="st">&#39;QS2_18_LOCATION_2_O&#39;</span>, <span class="st">&#39;QS2_15_RELATIONSHIP3&#39;</span>,</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                <span class="st">&#39;QS2_17_TYPE_3_Other&#39;</span>, <span class="st">&#39;QS2_18_LOCATION_3_O&#39;</span>, <span class="st">&#39;QS2_25_YOUTHINIT2&#39;</span>, <span class="st">&#39;QS2_27_MENTORPROGRA2&#39;</span>, <span class="st">&#39;QS2_33_TRANSITIONS_Ot&#39;</span>, <span class="st">&#39;QS2_34_SUPPORTS_Ot&#39;</span>, <span class="st">&#39;QS2_38_NETGATIVEMENTO&#39;</span>, <span class="st">&#39;QS3_2_TRANSITIONWITHOUTMEN&#39;</span>, <span class="st">&#39;QS3_3_TRANSITIONSWITHOUTMENTO&#39;</span>, <span class="st">&#39;QS4_4_Other&#39;</span>, <span class="st">&#39;QS4_5_SATEDU_Other&#39;</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -2258,7 +2264,7 @@ vertical-align: -.125em;
 <h3 class="anchored" data-anchor-id="encode-columns">Encode Columns</h3>
 <section id="make-column-names-interpertable-for-q4-race" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-q4-race">Make column names interpertable for Q4 (Race)</h4>
-<div id="2d0fa250" class="cell" data-execution_count="5">
+<div id="7bf0f182" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS1_6_ETHNOCULTURAL1_1_1&#39;</span>: <span class="st">&#39;Race_SouthAsian&#39;</span>,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS1_6_ETHNOCULTURAL1_2_2&#39;</span>: <span class="st">&#39;Race_Chinese&#39;</span>,</span>
@@ -2278,7 +2284,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interpertable-for-q6-gender" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-q6-gender">Make column names interpertable for Q6 (Gender)</h4>
-<div id="0728057c" class="cell" data-execution_count="6">
+<div id="ebf759e8" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS1_9_GENDER1_1_1&#39;</span> : <span class="st">&#39;Gender_Woman&#39;</span>,</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS1_9_GENDER1_2_2&#39;</span>: <span class="st">&#39;Gender_Man&#39;</span>,</span>
@@ -2290,7 +2296,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interpertable-for-q10-primary-caregiver" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-q10-primary-caregiver">Make column names interpertable for Q10 (Primary caregiver)</h4>
-<div id="0dca4f6e" class="cell" data-execution_count="7">
+<div id="fca406ef" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS1_16_PRIMARY1_1_1&#39;</span> : <span class="st">&#39;Primary_BirthMother&#39;</span>,</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS1_16_PRIMARY1_2_2&#39;</span>: <span class="st">&#39;Primary_BirthFather&#39;</span>,</span>
@@ -2309,7 +2315,7 @@ vertical-align: -.125em;
 </section>
 <section id="add-yearly-income-column" class="level4">
 <h4 class="anchored" data-anchor-id="add-yearly-income-column">Add yearly income column</h4>
-<div id="4fa1b488" class="cell" data-execution_count="8">
+<div id="75fbea78" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>youth[<span class="st">&#39;yearly_from_month&#39;</span>] <span class="op">=</span> youth[<span class="st">&#39;Month_income&#39;</span>].fillna(<span class="dv">0</span>) <span class="op">*</span> <span class="dv">12</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>youth[<span class="st">&#39;yearly_from_seimimonth&#39;</span>] <span class="op">=</span> youth[<span class="st">&#39;Semimonth_income&#39;</span>].fillna(<span class="dv">0</span>) <span class="op">*</span> <span class="dv">24</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>youth[<span class="st">&#39;yearly_from_biweek&#39;</span>] <span class="op">=</span> youth[<span class="st">&#39;Biweek_income&#39;</span>].fillna(<span class="dv">0</span>)<span class="op">*</span><span class="dv">26</span></span>
@@ -2323,7 +2329,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interpertable-for-q19c1-access-barriers" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-q19c1-access-barriers">Make column names interpertable for Q19c1 (Access Barriers)</h4>
-<div id="20d2e859" class="cell" data-execution_count="9">
+<div id="ff9b8e6c" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_13_ACCESSBARR1_1_1&#39;</span> : <span class="st">&#39;Barrier_Parent&#39;</span>,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_13_ACCESSBARR1_2_2&#39;</span> : <span class="st">&#39;Barrier_MentorProgramAvailability&#39;</span>,</span>
@@ -2341,7 +2347,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interpertable-for-q20b-mentor-relationship" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-q20b-mentor-relationship">Make column names interpertable for Q20b (Mentor relationship)</h4>
-<div id="08714029" class="cell" data-execution_count="10">
+<div id="8356e071" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_15_RELATIONS1_1_1&#39;</span> : <span class="st">&#39;Relation1_SchoolStaff&#39;</span>,</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_15_RELATIONS1_2_2&#39;</span> : <span class="st">&#39;Relation1_Neighbour&#39;</span>,</span>
@@ -2399,7 +2405,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interpertable-for-20h-focus-of-relationship" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-20h-focus-of-relationship">Make column names interpertable for 20h (Focus of relationship)</h4>
-<div id="f188904f" class="cell" data-execution_count="11">
+<div id="24c4c40a" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_21_FOCUS_11_1_1&#39;</span> : <span class="st">&#39;Focus1_EducationSupport&#39;</span>,</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_21_FOCUS_11_2_2&#39;</span> : <span class="st">&#39;Focus1_Spirutal-Religous-CulturalSupport&#39;</span>,</span>
@@ -2421,7 +2427,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interpertable-for-23a-if-youth-initated-why" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-23a-if-youth-initated-why">Make column names interpertable for 23a (If youth initated, why?)</h4>
-<div id="c02d2176" class="cell" data-execution_count="12">
+<div id="b6b70f69" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_26_INITIATIO1_1_1&#39;</span> : <span class="st">&#39;Initated_StrugglingInSchool&#39;</span>,</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_26_INITIATIO1_2_2&#39;</span> : <span class="st">&#39;Initated_StrugglingMentalHealth&#39;</span>,</span>
@@ -2446,7 +2452,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interpertable-for-25a-match-criteria" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-25a-match-criteria">Make column names interpertable for 25a (Match criteria)</h4>
-<div id="936cb882" class="cell" data-execution_count="13">
+<div id="09e7f293" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_29_MATCHCRITERI1_1_1&#39;</span> : <span class="st">&#39;Match_GenderIdentity&#39;</span>,</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_29_MATCHCRITERI1_2_2&#39;</span> : <span class="st">&#39;Match_Ethnicity&#39;</span>,</span>
@@ -2463,7 +2469,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interpertable-for-29-transitions" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interpertable-for-29-transitions">Make column names interpertable for 29 (Transitions)</h4>
-<div id="50571062" class="cell" data-execution_count="14">
+<div id="3a9eaa94" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_33_TRANSITIONS1_1_1&#39;</span> : <span class="st">&#39;Transition_School&#39;</span>,</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_33_TRANSITIONS1_2_2&#39;</span> : <span class="st">&#39;Transition_NewSchool&#39;</span>,</span>
@@ -2482,7 +2488,7 @@ vertical-align: -.125em;
 </section>
 <section id="make-column-names-interperatble-for-33-negative-mentor-experiences" class="level4">
 <h4 class="anchored" data-anchor-id="make-column-names-interperatble-for-33-negative-mentor-experiences">Make column names interperatble for 33 (Negative Mentor Experiences)</h4>
-<div id="713a0a53" class="cell" data-execution_count="15">
+<div id="66593e43" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_38_NETGATIVEME1_1_1&#39;</span> : <span class="st">&#39;Negative_MetorQuit&#39;</span>,</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_38_NETGATIVEME1_2_2&#39;</span> : <span class="st">&#39;Negative_NoSharedInterest&#39;</span>,</span>
@@ -2504,8 +2510,8 @@ vertical-align: -.125em;
 <span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_38_NETGATIVEME1_18_18&#39;</span> : <span class="st">&#39;Negative_NoneOfTheAbove&#39;</span>,</span>
 <span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;QS2_38_NETGATIVEME1_19_19&#39;</span> : <span class="st">&#39;Negative_PreferNotToSay&#39;</span>,}, inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="97eb5d14" class="cell" data-execution_count="16">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>youth.to_csv(<span class="st">&#39;../../dssg-2025-mentor-canada/Data/encodedselectall.csv&#39;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="2c71aa3e" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>youth.to_csv(<span class="st">&#39;../../dssg-2025-mentor-canada/Data/encodedselectall.csv&#39;</span>, index<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>

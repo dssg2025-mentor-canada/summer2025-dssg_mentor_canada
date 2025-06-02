@@ -19,7 +19,7 @@ cols_to_count <- c('2_province', '2b_community_type', '3_indigenous_status',
                    '9a_diagnosed_disability', '10_caregiver', '12_highschool_ged',
                    '13_further_edu', '13a_further_edu_level', '14_employment')
 
-mentor_cols_to_count <- c('16_early_meaningful_person', '17_teen_meaningful_person', '18_early_mentor',
+mentor_cols_to_count <- c('16_early_megitaningful_person', '17_teen_meaningful_person', '18_early_mentor',
                           '18a_early_mentor_form', '18a1_early_mentor_exp', '18d_early_mentor_unmet_access',
                           '19_teen_mentor', '19c_teen_mentor_unmet_access', '20c_teen_mentor1_form',
                           '20c_teen_mentor2_form', '20c_teen_mentor3_form', '40_adult_mentor')
