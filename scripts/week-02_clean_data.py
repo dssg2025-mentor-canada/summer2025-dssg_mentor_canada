@@ -382,12 +382,11 @@ unnamed_neg_life_event_cols = [
     'QS3_4_LIFEEVENTS1_2_2', 'QS3_4_LIFEEVENTS1_3_3', 'QS3_4_LIFEEVENTS1_5_5',
     'QS3_4_LIFEEVENTS1_6_6', 'QS3_4_LIFEEVENTS1_7_7', 'QS3_4_LIFEEVENTS1_8_8',
     'QS3_4_LIFEEVENTS1_9_9', 'QS3_4_LIFEEVENTS1_11_11', 'QS3_4_LIFEEVENTS1_12_12',
-    'QS3_4_LIFEEVENTS1_15_15', 'QS3_4_LIFEEVENTS1_16_16', 'QS3_4_LIFEEVENTS1_17_17',
-    'QS3_4_LIFEEVENTS1_18_18'
-]
+    'QS3_4_LIFEEVENTS1_13_13', 'QS3_4_LIFEEVENTS1_16_16', 'QS3_4_LIFEEVENTS1_17_17',
+    'QS3_4_LIFEEVENTS1_18_18', 'QS3_4_LIFEEVENTS1_19_19'] #14 columns
 named_neg_life_event_cols = [
     '38_parent_prison', '38_school_absence', '38_school_repeat', '38_school_suspended', '38_criminal_record',
-    '38_freq_school_change', '38_lack_school_access', '38_early_parenthood', '38_caregiver_role',
+    '38_freq_school_change', '38_lack_school_access', '38_early_parenthood', '38_social_assistance', '38_care_for_family',
     '38_work_to_support_family', '38_early_homelessness', '38_food_bank_use', '38_youth_in_care'
 ]
 for named_col, unnamed_col in zip(named_neg_life_event_cols, unnamed_neg_life_event_cols):
