@@ -7,10 +7,6 @@ import matplotlib.ticker as ticker
 path = "../../dssg-2025-mentor-canada/Data/neg_life_events_youth.csv"
 data = pd.read_csv(path)
 
-# only_selected_df = data[data['num_neg_life_events_youth'] != 0]
-
-# counts = only_selected_df['num_neg_life_events_youth'].value_counts().sort_index()
-
 # plot i: looking at composition of selections for 1 option selected
 only_selected_df = data[data['num_neg_life_events_youth'] == 1]
 
@@ -38,26 +34,6 @@ grouped = (
 )
 
 pivot_df = grouped.pivot(index="num_neg_life_events_youth", columns="event_type", values="count").fillna(0)
-
-# fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(14, 6), sharey=True)
-
-# ax1 = pivot_df.plot(
-#     kind="bar", 
-#     stacked=True, 
-#     figsize=(10, 6)
-# )
-
-# for container in ax1.containers:
-#     ax1.bar_label(container, label_type="center", fontsize=8)
-
-# plt.xlabel("Number of Negative Life Events Experienced")
-# plt.ylabel("Count of People")
-# plt.title("Stacked Breakdown by Type of Negative Life Event")
-# plt.legend(title="Event Type", bbox_to_anchor=(1.05, 1), loc='upper left')
-# plt.tight_layout()
-
-# plt.show()
-
 
 # plot ii: looking at composition of selections for 2 option selected
 selected_2_df = data[data['num_neg_life_events_youth'] == 2]
@@ -109,17 +85,3 @@ for ax in (ax1, ax2):
 
 plt.tight_layout()
 plt.show()
-
-
-
-# plt.figure(figsize=(8,5))
-# plt.bar(counts.index, counts.values)
-
-# ax = plt.gca()  # get current axes
-# ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-
-# plt.xlabel("Number of Negative Life Events Experienced as Youth")
-# plt.ylabel("Count of People that Experienced \nThis Number of Events")
-# plt.title("Distribution of Negative Life Events Experienced During Youth (12-18) \n(Excludes Selections with None)")
-
-# plt.show()
