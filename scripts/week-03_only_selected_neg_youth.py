@@ -11,6 +11,7 @@ data = pd.read_csv(path)
 
 # counts = only_selected_df['num_neg_life_events_youth'].value_counts().sort_index()
 
+# plot i: looking at composition of selections for 1 option selected
 only_selected_df = data[data['num_neg_life_events_youth'] == 1]
 
 subgroup_cols = [
@@ -38,15 +39,14 @@ grouped = (
 
 pivot_df = grouped.pivot(index="num_neg_life_events_youth", columns="event_type", values="count").fillna(0)
 
-
-ax = pivot_df.plot(
+ax1 = pivot_df.plot(
     kind="bar", 
     stacked=True, 
     figsize=(10, 6)
 )
 
-for container in ax.containers:
-    ax.bar_label(container, label_type="center", fontsize=8)
+for container in ax1.containers:
+    ax1.bar_label(container, label_type="center", fontsize=8)
 
 plt.xlabel("Number of Negative Life Events Experienced")
 plt.ylabel("Count of People")
@@ -54,7 +54,37 @@ plt.title("Stacked Breakdown by Type of Negative Life Event")
 plt.legend(title="Event Type", bbox_to_anchor=(1.05, 1), loc='upper left')
 plt.tight_layout()
 
-plt.show()
+# plt.show()
+
+
+# plot ii: looking at composition of selections for 2 option selected
+selected_2_df = data[data['num_neg_life_events_youth'] == 2]
+
+# create counts for the different combinations of two selections: 3 possible combos
+def combos_of_2(df):
+
+    food_social = 0
+    food_work = 0
+    work_social = 0
+
+    for _, row in df.iterrows():
+        if row["38_food_bank_use"] == 1 & row["38_social_assistance"] == 1:
+            food_social += 1
+        if row["38_food_bank_use"] == 1 & row["38_work_to_support_family"] == 1:
+            food_work += 1
+        if row["38_social_assistance"] == 1 & row["38_work_to_support_family"] == 1:
+            work_social += 1
+    
+    return pd.DataFrame([{
+        "Food + Social Assistance": food_social,
+        "Food + Work": food_work,
+        "Work + Social Assistance": work_social
+        }])
+
+
+combos_of_2(selected_2_df)
+
+
 
 # plt.figure(figsize=(8,5))
 # plt.bar(counts.index, counts.values)
