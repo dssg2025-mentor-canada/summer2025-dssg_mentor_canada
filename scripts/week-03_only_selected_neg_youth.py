@@ -39,20 +39,22 @@ grouped = (
 
 pivot_df = grouped.pivot(index="num_neg_life_events_youth", columns="event_type", values="count").fillna(0)
 
-ax1 = pivot_df.plot(
-    kind="bar", 
-    stacked=True, 
-    figsize=(10, 6)
-)
+# fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(14, 6), sharey=True)
 
-for container in ax1.containers:
-    ax1.bar_label(container, label_type="center", fontsize=8)
+# ax1 = pivot_df.plot(
+#     kind="bar", 
+#     stacked=True, 
+#     figsize=(10, 6)
+# )
 
-plt.xlabel("Number of Negative Life Events Experienced")
-plt.ylabel("Count of People")
-plt.title("Stacked Breakdown by Type of Negative Life Event")
-plt.legend(title="Event Type", bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.tight_layout()
+# for container in ax1.containers:
+#     ax1.bar_label(container, label_type="center", fontsize=8)
+
+# plt.xlabel("Number of Negative Life Events Experienced")
+# plt.ylabel("Count of People")
+# plt.title("Stacked Breakdown by Type of Negative Life Event")
+# plt.legend(title="Event Type", bbox_to_anchor=(1.05, 1), loc='upper left')
+# plt.tight_layout()
 
 # plt.show()
 
@@ -76,13 +78,37 @@ def combos_of_2(df):
             work_social += 1
     
     return pd.DataFrame([{
-        "Food + Social Assistance": food_social,
-        "Food + Work": food_work,
-        "Work + Social Assistance": work_social
+        "Food Bank Use + Social Assistance": food_social,
+        "Food Bank Use + Needed to Work": food_work,
+        "Needed to Work + Social Assistance": work_social
         }])
 
 
-combos_of_2(selected_2_df)
+select_2 = combos_of_2(selected_2_df)
+
+# set up the two plots
+fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(14, 6), sharey=True)
+
+# 1st stacked bar chart
+pivot_df.plot(kind="bar", stacked=True, ax=ax1)
+ax1.set_title("Group 1: Youth with 1 Negative Event")
+ax1.set_xlabel("Event Count")
+ax1.set_ylabel("Count of People")
+ax1.legend(title="Event Type", loc='upper right')
+
+# 2nd stacked bar chart
+select_2.plot(kind="bar", stacked=True, ax=ax2)
+ax2.set_title("Group 2: Youth with 2 Negative Events")
+ax2.set_xlabel("Event Count")
+ax2.legend(title="Event Type", loc='upper right')
+
+# Optional: Add bar labels
+for ax in (ax1, ax2):
+    for container in ax.containers:
+        ax.bar_label(container, label_type="center", fontsize=8)
+
+plt.tight_layout()
+plt.show()
 
 
 
