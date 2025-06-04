@@ -35,7 +35,7 @@ grouped = (
 
 pivot_df = grouped.pivot(index="num_neg_life_events_youth", columns="event_type", values="count").fillna(0)
 
-# plot ii: looking at composition of selections for 2 option selected
+# plot ii: looking at composition of selections for 2 options selected
 selected_2_df = data[data['num_neg_life_events_youth'] == 2]
 
 # create counts for the different combinations of two selections: 3 possible combos
