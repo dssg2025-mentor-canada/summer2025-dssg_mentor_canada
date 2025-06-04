@@ -81,4 +81,8 @@ X3 = sm.add_constant(X3)  # Add intercept
 log_reg3 = sm.Logit(target.loc[X3.index], X3).fit()
 print(log_reg3.summary())
 
+# check = logistic_data[['49_adult_social_assistance','38_social_assistance']]
+# for col in check.columns:
+#     print(f"Unique values in {col}: {check[col].unique()}")
+
 
