@@ -85,7 +85,6 @@ ses_adult_count <- youth |>
            `49_adult_child_services`,
            `49_adult_food_banks`) |>
   summarize(count = n())
-write_csv(ses_adult_count, "outputs/tables/week-03-count-adult-ses-indicator-responses.csv")
 
 
 total_respondant_to_Q49 <- ses_adult_count |>
@@ -102,6 +101,7 @@ ses_adult_count <- ses_adult_count |>
                            `49_adult_child_services`, 
                            `49_adult_food_banks`)) |>
   mutate(selection = as_factor(selection))
+write_csv(ses_adult_count, "outputs/tables/week-03-count-adult-ses-indicator-responses.csv")
 
 glimpse(ses_adult_count)
 
