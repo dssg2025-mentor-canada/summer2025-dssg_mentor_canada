@@ -77,6 +77,8 @@ select_2.plot(kind="bar", stacked=True, ax=ax2)
 ax2.set_title("Group 2: Youth with 2 Negative Events")
 ax2.set_xlabel("Event Count")
 ax2.legend(title="Event Type", loc='upper right')
+ax2.set_xticks([0])
+ax2.set_xticklabels(["2"])
 
 # Optional: Add bar labels
 for ax in (ax1, ax2):
