@@ -35,7 +35,7 @@ cols_to_drop_1 = youth.columns[1:35]
 youth = youth.drop(columns = cols_to_drop_1)
 
 # drop logic + validation columns 
-youth = youth.drop(columns=['QAge_Validation', 'Logic_QS1_6_Qtext', 'Logic_Qtext', 'QS1_8_Validation', 'Logic_QS1_26_Ask', 'QS1_29_Validation', 
+youth = youth.drop(columns=['QAge_Validation', 'Logic_QS1_3_Ask', 'Logic_QS1_15_A', 'Logic_QS1_6_Qtext', 'Logic_Qtext', 'QS1_8_Validation', 'Logic_QS1_26_Ask', 'QS1_29_Validation', 
                               'QS1_30_MValidatio', 'QS1_30_SMValidati', 'QS1_31_BWValidati', 'QS1_32_WValidatio', 'QS2_10_Validation', 'Logic_QS2_14_Ask','Logic_MENTORID1_1_1',
                               'Logic_MENTORID1_2_2', 'Logic_MENTORID1_3_3', 'Logic_AP_QS2_23', 'Logic_QS2_27_Ask', 'Logic_QS2_34_Valid', 'Logic_QS2_35_Ask', 'Logic_QS2_35_Mask1_1_1',
                               'Logic_QS2_35_Mask1_2_2', 'Logic_QS2_35_Mask1_3_3', 'Logic_QS2_35_Mask1_4_4', 'Logic_QS2_35_Mask1_5_5', 'Logic_QS2_35_Mask1_6_6', 'Logic_QS2_35_Mask1_7_7',
@@ -52,9 +52,10 @@ youth = youth.drop(columns = parent_edu_cols.columns) # CV
 ### Indicate Text Columns
 
 ```{python}
-text_columns = ['QS1_6_Other', 'QS1_9_Other', 'QS1_11_Other', 'QS1_16_Other', 'QS1_18_Other_1', 'QS1_18_Other_2',
+text_columns = ['QS1_6_Other', 'QS1_9_Other', 'QS1_11_Other', 'QS1_16_Other', # 'QS1_18_Other_1', 'QS1_18_Other_2', QS1_18 are parent education columns, which have been dropped in last section
                  'QS1_22_Other', 'QS1_26_Other', 'QS1_27_Other', 'QS2_13_Other', 'QS2_14_MENTORID', 'QS2_14_MENTORID_2', 'QS2_14_MENTORID_3', 'QS2_18_LOCATION_1_O', 'QS2_15_RELATIONSHIP2', 'QS2_17_TYPE_2_Other', 'QS2_18_LOCATION_2_O', 'QS2_15_RELATIONSHIP3',
                 'QS2_17_TYPE_3_Other', 'QS2_18_LOCATION_3_O', 'QS2_25_YOUTHINIT2', 'QS2_27_MENTORPROGRA2', 'QS2_33_TRANSITIONS_Ot', 'QS2_34_SUPPORTS_Ot', 'QS2_38_NETGATIVEMENTO', 'QS3_2_TRANSITIONWITHOUTMEN', 'QS3_3_TRANSITIONSWITHOUTMENTO', 'QS4_4_Other', 'QS4_5_SATEDU_Other']
+youth = youth.drop(columns = text_columns) # CV
 
 ```
 
