@@ -259,7 +259,6 @@ youth_tidy_cols['20i_teen_mentor3_geolocation'] = youth['QS2_22_GEOLOCATI3']
 
 # Who initiated the mentor program
 youth_tidy_cols['23_mentor1_init'] = youth['QS2_25_YOUTHINIT1']
-youth_tidy_cols['23_mentor2_init'] = youth['QS2_25_YOUTHINIT2']
 
 # Fix for 23a:
 # # Reason for mentorship initiation
