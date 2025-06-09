@@ -7,6 +7,7 @@ eda_files/
 dashboard_files/
 iframe_figures/
 
+*/execute-results/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
