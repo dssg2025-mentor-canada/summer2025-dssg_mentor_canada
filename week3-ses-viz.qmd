@@ -1,0 +1,146 @@
+---
+title: SES indicator responses--Visualization
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+# Variable selection: Proxy measure of SES
+
+This report contains descriptions for the visualizations using the **socioeconomic status (SES) indicator variables** from the survey questions assessing:
+
+## Relevant Variables from Survey Question 38:
+
++-----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
+| Variable name               | Description                                                                                                                                         |
++=============================+=====================================================================================================================================================+
+| `38_social_assistance`      | Respondents selected `Yes` to the question:                                                                                                         |
+|                             |                                                                                                                                                     |
+|                             | -   "My parent(s) or guardian(s) received **social assistance** such as 'welfare' or disability support" when they were 12-18 years old (**teen**). |
++-----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
+| `38_work_to_support_family` | Respondents selected `Yes` to the question:                                                                                                         |
+|                             |                                                                                                                                                     |
+|                             | -   "**I had to work a job for pay to support my family** when I was a teenager" when they were 12-18 years old (**teen**).                         |
++-----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
+| `38_food_bank_use`          | Respondents selected `Yes` to the question:                                                                                                         |
+|                             |                                                                                                                                                     |
+|                             | -   "My family and/or I used **food banks**" when they were 12-18 years old (**teen**).                                                             |
++-----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
+
+## Relevant Variables from Survey Question 49:
+
++------------------------------+--------------------------------------------------------------------------------------------------------------+
+| Variable name                | Description                                                                                                  |
++==============================+==============================================================================================================+
+| `49_adult_social_assistance` | Respondents selected `Yes` to the question:                                                                  |
+|                              |                                                                                                              |
+|                              | -   "I have received **social assistance** such as "welfare" or disability support" currently as **adults**. |
++------------------------------+--------------------------------------------------------------------------------------------------------------+
+| `49_adult_child_services`    | Respondents selected `Yes` to the question:                                                                  |
+|                              |                                                                                                              |
+|                              | -   "**I have had contact with child or family protective services**" currently as **adults**.               |
++------------------------------+--------------------------------------------------------------------------------------------------------------+
+| `49_adult_food_banks`        | Respondents selected `Yes` to the question:                                                                  |
+|                              |                                                                                                              |
+|                              | -   "**I have used food banks**" currently as **adults**.                                                    |
++------------------------------+--------------------------------------------------------------------------------------------------------------+
+
+## Compare the percentage of respondents who answered "Yes" to any or all of the indicator variables:
+
+-   A "Yes" response is encoded as "1", and "No" is encoded as "2".
+
+```{r}
+#| echo: False
+library(readr)
+library(knitr)
+```
+
+```{r}
+#| label: tbl-ses_teens
+#| tbl-cap: Number of response to SES indicators during respondents' teenage years (age 12-18)
+#| echo: False
+youth_ses_counts <- read_csv("outputs/tables/week-03-count-youth-ses-indicator-responses.csv")
+adult_ses_counts <- read_csv("outputs/tables/week-03-count-adult-ses-indicator-responses.csv")
+
+kable(youth_ses_counts)
+```
+
+```{r}
+#| label: tbl-ses_adults
+#| tbl-cap: Number of response to SES indicators during adulthood
+#| echo: False
+kable(adult_ses_counts)
+```
+
+From the above two tables, we observe that most survey respondents (\~72-77%) did not answer "Yes" to the 6 socioeconomic status (SES) indicator variables.
+
+Conversely, there are around \~30% of respondents who selected at least one "Yes" to any of the 6 SES indicator variables.
+
+To hone in on individuals who are at a disadvantageous socioeconomic situation both growing during their youth (age 12-18) and currently as adult (age 19-30), we will subset respondents who answered "Yes" to at least two of the indicator variables.
+
+Honing in on those who are at a much unfortunate SES situation, our (1) first goal in the next section is to explore whether participation in mentorship, either during early life (age 6-11) or youth (age 12-18) might have a seeming relationship with the 6 SES indicators variables through visualization. We will then compare the current median income earning among this subset of respondents to garner further insights into how mentorship engagement and SES might influence future income outcome.
+
+## Visualization
+
+### Part 1:
+
+#### Comparing proportion of youth SES indicator with [**early life** (age 6-11) experience of mentorship]{.underline} program:
+
+##### SES indicator 1: `38_social_assistance`
+
+> Parent(s) or guardian(s) received **social assistance** such as 'welfare' or disability support" during youth (12-18 years old).
+
+![Comparing proportion of youth or their family on social assistance with/without early life mentorship](outputs/figures/week-03-ses-teen-social-assistance-proportion-(early-mentor).png){#fig-assistance_early_mentor fig-align="center" width="60%"}
+
+**Observation to @fig-assistance_early_mentor**: Among the subset of individuals who selected "Yes" to 2 or all of the SES indicator variables, there is a larger proportion of teens whose family was on social assistance with mentor experience as a young kid. There are several possibilities to this observation:
+
+1.  The mentor might have helped the respondent and their family to apply for financial social support.
+
+2.  The youth respondent and their family might be more proactive in seeking out social support, including access to mentor for the young respondent.
+
+##### SES indicator 2: `38_work_to_support_family`
+
+> Respondent had to work a job for **pay to support my family** during youth (12-18 years old).
+
+![Comparing proportion of youth who worked to support their family with/without early life mentorship](outputs/figures/week-03-ses-teen-worked-proportion-(early-mentor).png){#fig-worked_early_mentor fig-align="center" width="60%"}
+
+**Observation to @fig-worked_early_mentor**: There is a larger proportion of respondents who worked to support their family during youth if they had mentor experience as a young kid. One possibility to this observation could be that teens who had a mentor growing up as kid felt greater sense of obligation to support their family. Subsequent data exploration will need to look into additional variables to tap into the underlying explanation as to why might this be the case.
+
+##### SES indicator 3: `38_food_bank_use`
+
+> Respondent's family and/or respondent used **food banks** during youth (12-18 years old).
+
+![Comparing proportion of youth or their family needed to use food banks with/without early life mentorship](outputs/figures/week-03-ses-teen-food-banks-proportion-(early-mentor).png){#fig-food_bank_early_mentor fig-align="center" width="60%"}
+
+**Observation to @fig-food_bank_early_mentor**: Among the subset of individuals who selected "Yes" to 2 or all of the SES indicator variables, there seem to be a large baseline proportion of respondents who had used the food banks during youth. There doesn't appear to have any difference in food bank usage between those who had versus those who had early mentor experience.
+
+#### Comparing proportion of youth SES indicator with [**teenage** (age 12-18) experience of mentorship]{.underline} program:
+
+##### SES indicator 1: `38_social_assistance`
+
+> Parent(s) or guardian(s) received **social assistance** such as 'welfare' or disability support" during youth (12-18 years old).
+
+![Comparing proportion of youth or their family on social assistance with/without youth mentorship](outputs/figures/week-03-ses-teen-social-assistance-proportion.png){#fig-assistance_teen_mentor fig-align="center" width="60%"}
+
+**Observation to @fig-assistance_teen_mentor**: Similar to earlier results where we looked at early-life mentor experience and social assistance, there is a larger proportion of teens whose family was on social assistance with mentor experience as a young kid. This hints at the possibility that those who had participated in a mentorship program as a young mentee at age 6-11 likely extended their mentorship into youth.
+
+##### SES indicator 2: `38_work_to_support_family`
+
+> Respondent had to work a job for **pay to support my family** during youth (12-18 years old).
+
+![Comparing proportion of youth who worked to support their family with/without youth mentorship](outputs/figures/week-03-ses-teen-worked-proportion-(teen-mentor).png){#fig-worked_teen_mentor fig-align="center" width="60%"}
+
+**Observation to @fig-worked_teen_mentor**: There is a similarly larger proportion of respondents who worked to support their family during youth if they had mentor experience during youth, suggesting that these youths might come from a more economically difficult household than those who didn't have a youth mentor. Alternatively (but not mutual exclusively), the youths might had a greater sense of responsibility to support their family due to influences from their mentor.
+
+##### SES indicator 3: `38_food_bank_use`
+
+> Respondent's family and/or respondent used **food banks** during youth (12-18 years old).
+
+![Comparing proportion of youth or their family needed to use food banks with/without youth mentorship](outputs/figures/week-03-ses-teen-food-banks-proportion-(teen-mentor).png){#fig-food_bank_teen_mentor fig-align="center" width="60%"}
+
+**Observation to @fig-food_bank_teen_mentor**: Among the subset of individuals who selected "Yes" to 2 or all of the SES indicator variables, there seem to be a large baseline proportion of respondents who had used the food banks during youth.
+
+Compared to the previous @fig-food_bank_early_mentor where there doesn't seem to have any difference in food bank usage between those who had versus those who had early mentor experience; there seems to be a higher proportion of teens who had used the food banks if they had a mentor when they were youth.

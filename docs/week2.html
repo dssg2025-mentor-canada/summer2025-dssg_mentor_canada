@@ -3990,7 +3990,11 @@ vertical-align: -.125em;
 <h2 data-number="2.1" class="anchored" data-anchor-id="python-preprocessing-and-cleaning"><span class="header-section-number">2.1</span> Python: Preprocessing and Cleaning</h2>
 <section id="library-imports" class="level3" data-number="2.1.1">
 <h3 data-number="2.1.1" class="anchored" data-anchor-id="library-imports"><span class="header-section-number">2.1.1</span> Library Imports</h3>
+<<<<<<< HEAD
+<div id="41984453" class="cell" data-execution_count="1">
+=======
 <div id="a3aefcad" class="cell" data-execution_count="1">
+>>>>>>> 89e3829b444375ae2d1c683cb8d544578b3d022a
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> siuba <span class="im">import</span> _, group_by, summarize, <span class="bu">filter</span>, select, mutate, arrange, count</span>
@@ -3999,13 +4003,21 @@ vertical-align: -.125em;
 </section>
 <section id="importing-data" class="level3" data-number="2.1.2">
 <h3 data-number="2.1.2" class="anchored" data-anchor-id="importing-data"><span class="header-section-number">2.1.2</span> Importing Data</h3>
+<<<<<<< HEAD
+<div id="3c08a14f" class="cell" data-execution_count="2">
+=======
 <div id="02bafcb5" class="cell" data-execution_count="2">
+>>>>>>> 89e3829b444375ae2d1c683cb8d544578b3d022a
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> pd.read_csv(<span class="st">'../../dssg-2025-mentor-canada/Data/Data_2020-Youth-Survey.csv'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="dropping-columns" class="level3" data-number="2.1.3">
 <h3 data-number="2.1.3" class="anchored" data-anchor-id="dropping-columns"><span class="header-section-number">2.1.3</span> Dropping Columns</h3>
+<<<<<<< HEAD
+<div id="0a2f22ef" class="cell" data-execution_count="3">
+=======
 <div id="ee12577d" class="cell" data-execution_count="3">
+>>>>>>> 89e3829b444375ae2d1c683cb8d544578b3d022a
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># drop columns up to AO</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>youth <span class="op">=</span> youth.iloc[:, <span class="dv">41</span>:]</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -4024,7 +4036,11 @@ vertical-align: -.125em;
 </section>
 <section id="indicate-text-columns" class="level3" data-number="2.1.4">
 <h3 data-number="2.1.4" class="anchored" data-anchor-id="indicate-text-columns"><span class="header-section-number">2.1.4</span> Indicate Text Columns</h3>
+<<<<<<< HEAD
+<div id="4b5b0dca" class="cell" data-execution_count="4">
+=======
 <div id="e25f3f09" class="cell" data-execution_count="4">
+>>>>>>> 89e3829b444375ae2d1c683cb8d544578b3d022a
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>text_columns <span class="op">=</span> [<span class="st">'QS1_6_Other'</span>, <span class="st">'QS1_9_Other'</span>, <span class="st">'QS1_11_Other'</span>, <span class="st">'QS1_16_Other'</span>, <span class="st">'QS1_18_Other_1'</span>, <span class="st">'QS1_18_Other_2'</span>,</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                 <span class="st">'QS1_22_Other'</span>, <span class="st">'QS1_26_Other'</span>, <span class="st">'QS1_27_Other'</span>, <span class="st">'QS2_13_Other'</span>, <span class="st">'QS2_14_MENTORID'</span>, <span class="st">'QS2_14_MENTORID_2'</span>, <span class="st">'QS2_14_MENTORID_3'</span>, <span class="st">'QS2_18_LOCATION_1_O'</span>, <span class="st">'QS2_15_RELATIONSHIP2'</span>, <span class="st">'QS2_17_TYPE_2_Other'</span>, <span class="st">'QS2_18_LOCATION_2_O'</span>, <span class="st">'QS2_15_RELATIONSHIP3'</span>,</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                <span class="st">'QS2_17_TYPE_3_Other'</span>, <span class="st">'QS2_18_LOCATION_3_O'</span>, <span class="st">'QS2_25_YOUTHINIT2'</span>, <span class="st">'QS2_27_MENTORPROGRA2'</span>, <span class="st">'QS2_33_TRANSITIONS_Ot'</span>, <span class="st">'QS2_34_SUPPORTS_Ot'</span>, <span class="st">'QS2_38_NETGATIVEMENTO'</span>, <span class="st">'QS3_2_TRANSITIONWITHOUTMEN'</span>, <span class="st">'QS3_3_TRANSITIONSWITHOUTMENTO'</span>, <span class="st">'QS4_4_Other'</span>, <span class="st">'QS4_5_SATEDU_Other'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -4034,7 +4050,11 @@ vertical-align: -.125em;
 <h3 data-number="2.1.5" class="anchored" data-anchor-id="encode-columns"><span class="header-section-number">2.1.5</span> Encode Columns</h3>
 <section id="make-column-names-interpertable-for-q4" class="level4" data-number="2.1.5.1">
 <h4 data-number="2.1.5.1" class="anchored" data-anchor-id="make-column-names-interpertable-for-q4"><span class="header-section-number">2.1.5.1</span> Make column names interpertable for Q4</h4>
+<<<<<<< HEAD
+<div id="ef8dc732" class="cell" data-execution_count="5">
+=======
 <div id="f2c30a53" class="cell" data-execution_count="5">
+>>>>>>> 89e3829b444375ae2d1c683cb8d544578b3d022a
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>youth.rename(columns<span class="op">=</span>{</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'QS1_6_ETHNOCULTURAL1_1_1'</span>: <span class="st">'Race_SouthAsian'</span>,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'QS1_6_ETHNOCULTURAL1_2_2'</span>: <span class="st">'Race_Chinese'</span>,</span>
