@@ -30,7 +30,7 @@ This report contains descriptions for the visualizations using the **socioeconom
 |                             | -   "My family and/or I used **food banks**" when they were 12-18 years old (**teen**).                                                             |
 +-----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
 
-## Relevant Variables fromrom Survey Question 49:
+## Relevant Variables from Survey Question 49:
 
 +------------------------------+--------------------------------------------------------------------------------------------------------------+
 | Variable name                | Description                                                                                                  |
