@@ -65,6 +65,9 @@ logistic_data[target_cols] = (
 # # # # keep only observations that had yes or no answers
 # # logistic_data = df['18d_early_mentor_unmet_access'].isin([1,2])
 
+# check for class imbalance -> if so, reweight
+logistic_data['18d_early_mentor_unmet_access'].value_counts()
+
 X = logistic_data[predictor_cols].astype('float64')
 X = sm.add_constant(X)
 y = logistic_data['18d_early_mentor_unmet_access'].astype('float64')
