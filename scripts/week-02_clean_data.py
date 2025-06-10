@@ -76,18 +76,52 @@ youth_tidy_cols['2b_community_type'] = youth['QS1_3_COMMUNITYTYPE']
 youth_tidy_cols['3_indigenous_status'] = youth['QS1_4_INDIGENOUS']
 
 # Ethnicity
-ethnicity_cols = youth.loc[:, 'Race_SouthAsian':'Race_Unsure'].columns
+ethnicity_cols = [
+    'Race_SouthAsian',
+    'Race_Chinese',
+    'Race_Black',
+    'Race_Filipino',
+    'Race_LatinAmerica',
+    'Race_Arab',
+    'Race_SouthEastAsian',
+    'Race_WestAsian',
+    'Race_Korean',
+    'Race_Japanese',
+    'Race_White',
+    'Race_Other',
+    'Race_Unsure',
+    'Race_PreferNotToSay'
+]
+
 youth[ethnicity_cols] = youth[ethnicity_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['4_ethnicity'] = youth[ethnicity_cols].idxmax(1)
+ethnicity_sum = youth[ethnicity_cols].sum(axis=1)
+ethnicity_series = pd.Series('Race_MultipleSelected', index=youth.index)
+single_ethnicity = ethnicity_sum == 1
+ethnicity_series[single_ethnicity] = youth.loc[single_ethnicity, ethnicity_cols].idxmax(axis=1)
+youth_tidy_cols['4_ethnicity'] = ethnicity_series
+
 
 # Newcomer
 youth_tidy_cols['5_newcomer'] = youth['QS1_7_NEWCOMER']
 
 
 # Gender Identity
-gender_cols = youth.loc[:, 'Gender_Woman':'Gender_PreferNotToSay'].columns
-youth[gender_cols] = youth[gender_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['6_gender_identity'] = youth[gender_cols].idxmax(1)
+gender_cols = [
+    'Gender_Woman',
+    'Gender_Man',
+    'Gender_NonBinary',
+    'Gender_CulturalMinority',
+    'Gender_Other',
+    'Gender_PreferNotToSay'
+]
+
+gender_sum = youth[gender_cols].sum(axis=1)
+gender_identity_series = pd.Series('Gender_MultipleSelected', index=youth.index)
+single_selection = gender_sum == 1
+gender_identity_series[single_selection] = youth.loc[single_selection, gender_cols].idxmax(axis=1)
+youth_tidy_cols['6_gender_identity'] = gender_identity_series
+
+
 
 # Transgender 
 youth_tidy_cols['7_trans_ident'] = youth['QS1_10_TRANSUM']
@@ -99,10 +133,6 @@ youth_tidy_cols['9_subclinical_disability'] = youth['QS1_12_DISABIL']
 # Diagnosed Disability
 youth_tidy_cols['9a_diagnosed_disability'] = youth['QS1_13_DISABIL']
 
-# Primary caregiver growing up
-caregiver_cols = youth.loc[:, 'Primary_BirthMother':'Primary_Other'].columns
-youth[caregiver_cols] = youth[caregiver_cols].apply(pd.to_numeric, errors='coerce')
-youth_tidy_cols['10_caregiver'] = youth[caregiver_cols].idxmax(1)  
 
 # Caregiver's educational level/attainment
 youth_tidy_cols['11_birth_mother_edu'] = youth['QS1_18_PARENTEDUC1'].astype('Int64')
