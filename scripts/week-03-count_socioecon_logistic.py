@@ -11,6 +11,7 @@ print('count of those who required social assistance since turning 18:', (data['
 print("count of those who required social assistance between 12–18 and since turning 18:",
       ((data['38_social_assistance'] == 1) & (data['49_adult_social_assistance'] == 1)).sum())
 print("\nRaw target class distributions:")
+
 print(data['12_highschool_ged'].value_counts())
 print(data['49_adult_social_assistance'].value_counts())
 
@@ -37,6 +38,9 @@ logistic_data['mentor_present'] = (
     (logistic_data['19_teen_mentor'] == 1)
 ).astype(int) # turns true to 1, false to 0
 
+
+print('High School Completion:',logistic_data['12_highschool_ged'].value_counts())
+print('Adult Social Assistance Use',logistic_data['49_adult_social_assistance'].value_counts())
 
 # --- First Model ---
 
@@ -99,5 +103,3 @@ X = sm.add_constant(logistic_data[['mentor_present']])
 log_reg3 = sm.GLM(target, X, family=sm.families.Binomial(), freq_weights=logistic_data['asst_weights']).fit()
 
 print("Assessing the Impact of Mentor Presence on Adult Social Assistance Use (Univariate Model)",log_reg3.summary())
-
-

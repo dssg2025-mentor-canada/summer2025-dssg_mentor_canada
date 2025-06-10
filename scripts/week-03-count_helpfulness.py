@@ -35,6 +35,7 @@ print(data['mentor_helpful_bin'].value_counts())
 # Q29, transitions
 # Q26, match similarity
 # Q22, mentor age relative to mentee age
-print(data['12_highschool_ged'].value_counts())
-print(data['49_adult_social_assistance'].value_counts())
+
+table = pd.crosstab(data['mentor_helpful_bin'], data['26_religion_similar'])
+print(table)
 
