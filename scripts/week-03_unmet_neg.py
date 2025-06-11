@@ -12,7 +12,7 @@ print('count of those with guardians that required social assistance during yout
 print('count of those who needed to work to support their families during youth (ages 12-18):', (df['38_work_to_support_family'] == 1).sum())
 print('count of those who used food banks during youth (ages 12-18):', (df['38_food_bank_use'] == 1).sum())
 print("count of those who wanted a mentor but had unmet access during childhood (ages 6-11):",
-      (df['18d_early_mentor_unmet_access']==1).sum())
+      (df['18d_early_mentor_unmet_access']== 'Yes').sum())
 print("\nRaw target class distributions:")
 
 print(df['18d_early_mentor_unmet_access'].value_counts())
