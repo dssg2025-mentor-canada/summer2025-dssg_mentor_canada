@@ -1,0 +1,10 @@
+---
+title: Latent Class Analysis
+date: 2025-06-09
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
