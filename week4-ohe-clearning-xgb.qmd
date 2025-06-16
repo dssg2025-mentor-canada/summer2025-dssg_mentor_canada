@@ -382,6 +382,7 @@ convert_string_ord_fac <- function(data, lst_ord_level_cols, lst_col_names) {
 > Apply above function `convert_ord_fac()`
 
 ```{r}
+#| output: false
 youth |> select(all_of(c(ordinal_chr_vars))) |> str() # before conversion
 youth <- convert_string_ord_fac(youth, lst_of_ord_cols, ordinal_chr_vars)
 
@@ -404,6 +405,7 @@ convert_number_ord_fac <- function(data, lst_col_names) {
 > Apply above Function 2 to `ordinal_numeric_vars`
 
 ```{r}
+#| output: false
 youth |> select(all_of(c(ordinal_numeric_vars))) |> str() # before conversion
 
 youth <- convert_number_ord_fac(youth, ordinal_numeric_vars)
