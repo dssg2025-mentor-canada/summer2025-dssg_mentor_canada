@@ -14,6 +14,12 @@ book:
     - part: "Week 2"
       chapters:
         - week2.qmd
-        - dashboard.qmd    
+        - dashboard.qmd   
+    - part: "Week 3"
+      chapters:
+        - week3-ses-viz.qmd
+    - part: "Week 4" 
+      chapters: 
+        - week4-ohe-clearning-xgb.qmd
     - references.qmd
   
