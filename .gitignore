@@ -7,7 +7,6 @@ site_libs/
 eda_files/
 dashboard_files/
 iframe_figures/
-*.html
 
 */execute-results/
 
