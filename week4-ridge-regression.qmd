@@ -1,0 +1,670 @@
+---
+title: Ridge Regression 
+subtitle: (with dataset cleaning in the beginning)
+date: 2025-06-09
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+# Ridge Regression
+
+Ridge Regression is a linear regression technique that adds `L2 regularization` that penalizes large coefficients to prevent overfitting and reduce problems associated with multicollinearity (association among feature variables / independent variables).
+
+```{r}
+#| echo: false
+library(tidymodels)
+library(tidyverse)
+library(knitr)
+library(car)
+library(interactions)
+library(glmnet)
+library(xgboost)
+
+set.seed(512) # Set seed to ensure code result reproducibility for randomization
+```
+
+## Load cleaned data set with dummy coding (ont-hot encoded) variables:
+
+```{r}
+#| output: false
+youth_orig <- read_csv("../../dssg-2025-mentor-canada/Data/encodedselectall.csv")
+
+head(youth_orig)
+```
+
+### Exclude covariates (outcome variables) as independent variables (`youth_iv`).
+
+**Outcome variables (11 expected in total)**:
+
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------+
+| Q12. High school GED                                                                                                                                                                                        | Q43. Social capital                                                                                                                                                                                                                                  | Q27. Belonging                                                    |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+| -   QS1_19_HIGHSCHOOL                                                                                                                                                                                       | -   QS4_7_SOCIALCAPITAL1_1_1, QS4_7_SOCIALCAPITAL1_2_2, QS4_7_SOCIALCAPITAL1_3_3, QS4_7_SOCIALCAPITAL1_4_4                                                                                                                                           | -   QS4_11_BELONGING                                              |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+| -   QS1_20_HIGHSCHOOL                                                                                                                                                                                       |                                                                                                                                                                                                                                                      |                                                                   |
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------+
+| Q13. Further education/training -\> counts at each level                                                                                                                                                    | Q44. Help-seeking                                                                                                                                                                                                                                    | Q50. Volunteering                                                 |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+| -   QS1_21_FURTHEDUCA                                                                                                                                                                                       | -   QS4_8_HELPSEEKING1_1_1, QS4_8_HELPSEEKING1_2_2, QS4_8_HELPSEEKING1_3_3, QS4_8_HELPSEEKING1_4_4, QS4_8_HELPSEEKING1_5_5, QS4_8_HELPSEEKING1_6_6, QS4_8_HELPSEEKING1_7_7, QS4_8_HELPSEEKING1_8_8, QS4_8_HELPSEEKING1_9_9, QS4_8_HELPSEEKING1_10_10 | -   QS4_14_FORMALVOL                                              |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+| Q13a. Higher education (controlling for age)                                                                                                                                                                |                                                                                                                                                                                                                                                      | -   QS4_15_TIMEIFFOR1                                             |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+| -   QS1_22_HIGHESTEDU                                                                                                                                                                                       |                                                                                                                                                                                                                                                      |     -   Total hour                                                |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+| -   QS1_23_YEARCOMPLE                                                                                                                                                                                       |                                                                                                                                                                                                                                                      | -   QS4_15_TIMEIFFOR2                                             |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |     -   Hours per month                                           |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      | -   QS4_15_TIMEIFFOR3                                             |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |     -   Hours per week                                            |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      | -   QS4_15_TIMEIFFOR4                                             |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |     -   Hours per day                                             |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      | -   QS4_16_FORMALVOL                                              |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |     -   Volunteered as teacher/mentor/educator in past 12 months. |
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------+
+| Q14. Employment status                                                                                                                                                                                      | Q45. Mental health                                                                                                                                                                                                                                   |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+| -   QS1_25_EMPLOYMENT                                                                                                                                                                                       | -   QS4_9_MENTALHEALTH                                                                                                                                                                                                                               |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+|     -   We added the continuous yearly income variable: **QS1_28_EMPLOYMENT_calculated**                                                                                                                    |                                                                                                                                                                                                                                                      |                                                                   |
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------+
+| Q41. Career planning                                                                                                                                                                                        | Q46. Mental well-being                                                                                                                                                                                                                               |                                                                   |
+|                                                                                                                                                                                                             |                                                                                                                                                                                                                                                      |                                                                   |
+| -   QS4_3_CAREERPLANNIN1_1_1 QS4_3_CAREERPLANNIN1_2_2 QS4_3_CAREERPLANNIN1_3_3 QS4_3_CAREERPLANNIN1_4_4 QS4_3_CAREERPLANNIN1_5_5 QS4_3_CAREERPLANNIN1_6_6 QS4_3_CAREERPLANNIN1_7_7 QS4_3_CAREERPLANNIN1_8_8 | -   QS4_10_MENTALWELLBE1_1_1, QS4_10_MENTALWELLBE1_2_2, QS4_10_MENTALWELLBE1_3_3, QS4_10_MENTALWELLBE1_4_4, QS4_10_MENTALWELLBE1_5_5, QS4_10_MENTALWELLBE1_6_6, QS4_10_MENTALWELLBE1_7_7                                                             |                                                                   |
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------+
+
+```{r}
+high_school_ged <- c("QS1_19_HIGHSCHOOL", "QS1_20_HIGHSCHOOL")
+
+further_educ <- c("QS1_21_FURTHEDUCA", "QS1_22_HIGHESTEDU", "QS1_23_YEARCOMPLE")
+
+employment_status <- "QS1_25_EMPLOYMENT"
+yearly_income <- "QS1_28_EMPLOYMENT_calculated"
+career_planning <- c("QS4_3_CAREERPLANNIN1_1_1", "QS4_3_CAREERPLANNIN1_2_2", "QS4_3_CAREERPLANNIN1_3_3", "QS4_3_CAREERPLANNIN1_4_4", "QS4_3_CAREERPLANNIN1_5_5", "QS4_3_CAREERPLANNIN1_6_6", "QS4_3_CAREERPLANNIN1_7_7", "QS4_3_CAREERPLANNIN1_8_8")
+
+social_capital <- c("QS4_7_SOCIALCAPITAL1_1_1", "QS4_7_SOCIALCAPITAL1_2_2", "QS4_7_SOCIALCAPITAL1_3_3", "QS4_7_SOCIALCAPITAL1_4_4")
+
+help_seeking <- c("QS4_8_HELPSEEKING1_1_1", "QS4_8_HELPSEEKING1_2_2", "QS4_8_HELPSEEKING1_3_3", "QS4_8_HELPSEEKING1_4_4", "QS4_8_HELPSEEKING1_5_5", "QS4_8_HELPSEEKING1_6_6", "QS4_8_HELPSEEKING1_7_7", "QS4_8_HELPSEEKING1_8_8", "QS4_8_HELPSEEKING1_9_9", "QS4_8_HELPSEEKING1_10_10")
+mental_health <- "QS4_9_MENTALHEALTH"
+well_being <- c("QS4_10_MENTALWELLBE1_1_1", "QS4_10_MENTALWELLBE1_2_2", "QS4_10_MENTALWELLBE1_3_3", "QS4_10_MENTALWELLBE1_4_4", "QS4_10_MENTALWELLBE1_5_5", "QS4_10_MENTALWELLBE1_6_6", "QS4_10_MENTALWELLBE1_7_7")
+
+belonging <- "QS4_11_BELONGING"
+
+volunteering <- c("QS4_14_FORMALVOL", "QS4_15_TIMEIFFOR1", "QS4_15_TIMEIFFOR2", "QS4_15_TIMEIFFOR3", "QS4_15_TIMEIFFOR4", "QS4_16_FORMALVOL")
+
+
+youth_iv <- youth_orig |>
+            select(-all_of(c(high_school_ged,
+                                further_educ,
+                           employment_status, 
+                               yearly_income,
+                             career_planning,
+                              social_capital, 
+                                help_seeking, 
+                               mental_health,
+                                  well_being, 
+                                   belonging,
+                                volunteering)))
+
+youth_dv <- youth_orig |>
+            select(all_of(c(high_school_ged,
+                               further_educ,
+                          employment_status, 
+                              yearly_income,
+                            career_planning,
+                             social_capital, 
+                               help_seeking, 
+                              mental_health,
+                                 well_being, 
+                                  belonging,
+                               volunteering)))
+
+```
+
+#### Ensure all postal code are in proper upper cases:
+
+```{r}
+youth_orig$geo_postcode_fsa <- toupper(youth_orig$geo_postcode_fsa)
+```
+
+### Remove pre-processed column (binarized) by previous researchers
+
+```{r}
+youth <- youth_orig |>
+select(-c(QS1_8_NEWCOMERYEAR_cat:Week_income)) 
+
+youth <- youth |>
+select(-c(QS2_16_FORMAT_any:total_yearly_income))
+```
+
+#### Remove uncleaned text columns:
+
+```{r}
+youth <- youth |>
+select(-c("QS2_25_YOUTHINIT1", "QS2_29_MATCHCRITERIA_O", "QS2_39_2_Other", "QS4_23_PASTFORMA1", "QS2_39_1_Other", "QS2_39_3_Other")) |>
+select(-c("QS1_29_EMPLOYMENT", "QS1_30_EMPLOYMENT1", "QS1_30_EMPLOYMENT2", "QS1_31_EMPLOYMENT", "QS1_32_WEEKLY")) |> # remove repeated income columns
+select(-c("QS2_15_RELATIONSHIP1", "QS2_5_Other", "QS2_17_TYPE_1_Other")) |> # delete this line later after pulling from Github
+select(-geo_postcode_fsa) # temporarily taking out postal code--it will be useful only when building geospatial plot
+```
+
+#### Replace `Prefer not to answer` / `Don't know` responses for ordinal items as missing values (`NA`).
+
+-   `QS4_9_MENTALHEALTH`
+
+    -   `"Don’t know"`
+
+    -   `"Prefer not to answer"`
+
+-   `QS4_11_BELONGING`
+
+    -   `"Don’t know"`
+
+    -   `"Prefer not to answer"`
+
+-   `QS4_20_MENTEEAGE`
+
+    -   `"Unsure"`
+
+    -   `"Prefer not to say"`
+
+```{r}
+youth <- youth |>
+mutate(QS4_9_MENTALHEALTH = na_if(QS4_9_MENTALHEALTH, "Don’t know"),
+       QS4_9_MENTALHEALTH = na_if(QS4_9_MENTALHEALTH, "Prefer not to answer"),
+       QS4_11_BELONGING = na_if(QS4_11_BELONGING, "Don’t know"),
+       QS4_11_BELONGING = na_if(QS4_11_BELONGING, "Prefer not to answer"),
+       QS4_20_MENTEEAGE = na_if(QS4_20_MENTEEAGE, "Unsure"),
+       QS4_20_MENTEEAGE = na_if(QS4_20_MENTEEAGE, "Prefer not to say"))
+
+
+```
+
+#### Identify continuous metrics columns:
+
+-   QS1_14_DISABIL (9b: At what age did disability / conditions emerge.)
+
+-   QS1_15_DISABIL (9b1: How many years have the disability affected performance)
+
+-   Education levels (years) being treated as continuous due to \> 7 levels.
+
+    -   QS1_18_PARENTEDUC1
+
+        QS1_18_PARENTEDUC2
+
+        QS1_20_HIGHSCHOOL
+
+-   QS1_23_YEARCOMPLE (In what year completed higher education)
+
+-   Employment wage / salary:
+
+    -   QS1_29_EMPLOYMENT
+
+    -   QS1_30_EMPLOYMENT1
+
+    -   QS1_30_EMPLOYMENT2
+
+    -   QS1_31_EMPLOYMENT
+
+    -   QS1_32_WEEKLY
+
+    -   Month_income
+
+    -   Semimonth_income
+
+    -   Biweek_income
+
+    -   Week_income
+
+    -   [**QS1_28_EMPLOYMENT_calculated**]{.underline}
+
+-   Volunteer hours:
+
+    -   QS4_15_TIMEIFFOR1 (Total hour)
+
+    -   QS4_15_TIMEIFFOR2 (Hours per month)
+
+    -   QS4_15_TIMEIFFOR3 (Hours per week)
+
+    -   QS4_15_TIMEIFFOR4 (Hours per day)
+
+-   Number of mentors:
+
+    -   QS2_10_NUMBEROFME
+
+```{r}
+# metric variables, not including outcome `QS1_25_EMPLOYMENT`
+metric_vars <- c("QS1_1_AGE", "QS1_8_NEWCOMERYEAR", "QS1_14_DISABIL", "QS1_15_DISABIL", "QS1_20_HIGHSCHOOL", "QS1_23_YEARCOMPLE", "QS2_10_NUMBEROFME", "QS4_15_TIMEIFFOR1", "QS4_15_TIMEIFFOR2", "QS4_15_TIMEIFFOR3", "QS4_15_TIMEIFFOR4") 
+```
+
+#### Convert all categorical columns into factor data type
+
+1.  Identify categorical columns:
+
+```{r}
+cate_vars <- c("QS1_2_PROV", "QS1_3_COMMUNITYTYPE", "QS1_4_INDIGENOUS", "QS1_5_INDIGENOUSHS", "QS1_7_NEWCOMER", "QS1_10_TRANSUM", "QS1_11_SEXUALO", "QS1_12_DISABIL", "QS1_13_DISABIL", "QS1_17_INCARE",  "QS1_19_HIGHSCHOOL", "QS1_21_FURTHEDUCA", "QS1_22_HIGHESTEDU", "QS1_25_EMPLOYMENT", "QS1_27_PLANNINGRE", "QS1_28_EMPLOYMENT", "QS2_1_MEANINGFULP", "QS2_2_MEANINGFULP", "QS2_3_PRESENCEOFM", "QS2_4_MENTOR61FOR", "QS2_5_MENTOR611PR",  "QS2_7_MENTOR611SE", "QS2_8_UNMETNEED61", "QS2_9_PRESENCEOFA", "QS2_11_MENTOR1218",  "QS2_12_UNMETNEED1", "QS2_16_FORMAT_1", "QS2_17_TYPE_1", "QS2_18_LOCATION_1", "QS2_22_GEOLOCATI1", "QS2_16_FORMAT_2", "QS2_17_TYPE_2", "QS2_18_LOCATION_2", "QS2_22_GEOLOCATI2", "QS2_16_FORMAT_3", "QS2_17_TYPE_3", "QS2_18_LOCATION_3", "QS2_22_GEOLOCATI3", "QS2_23_MOSTMEANI", "QS2_24_MENTORAGE", "QS2_26_INITIATIONEV", "QS2_27_MENTORPROGRA1", "QS2_28_MATCHCHOICE", "Match_GenderIdentity", "Match_Ethnicity", "Match_CulturalBackground", "Match_ScheduleAvailability", "Match_Interests", "Match_Goals", "Match_Personalities", "Match_LifeStruggles", "Match_Other", "Match_Unsure", "Match_PreferNotToSay", "Transition_School", "Transition_NewSchool", "Transition_NewCommunity", "Transition_GettingDriversLicense", "Transition_JobAspirations", "Transition_GettingFirstJob", "Transition_ApplyingToTradeSchool-Collge-Uni", "Transition_IndependenceFromGuardian", "Transition_FundingForTradeSchool-Collge-Uni", "Transition_NoneOfAbove", "Transition_Other", "Transition_PreferNotToSay", "QS2_33_TRANSITIONS1_13_13", "QS2_33_TRANSITIONS1_14_14", "QS2_34_SUPPORTS1_10_10", "QS3_4_LIFEEVENTS1_1_1", "QS3_4_LIFEEVENTS1_2_2", "QS3_4_LIFEEVENTS1_3_3", "QS3_4_LIFEEVENTS1_4_4", "QS3_4_LIFEEVENTS1_5_5", "QS3_4_LIFEEVENTS1_6_6", "QS3_4_LIFEEVENTS1_7_7", "QS3_4_LIFEEVENTS1_8_8", "QS3_4_LIFEEVENTS1_9_9", "QS3_4_LIFEEVENTS1_10_10", "QS3_4_LIFEEVENTS1_11_11", "QS3_4_LIFEEVENTS1_12_12", "QS3_4_LIFEEVENTS1_13_13", "QS3_4_LIFEEVENTS1_14_14", "QS3_4_LIFEEVENTS1_15_15", "QS3_4_LIFEEVENTS1_16_16", "QS3_4_LIFEEVENTS1_17_17", "QS3_4_LIFEEVENTS1_18_18", "QS3_4_LIFEEVENTS1_19_19", "QS3_4_LIFEEVENTS1_20_20", "QS4_1_MEANINGFULPERSON", "QS4_4_EDUCATIONALEXPEC", "QS4_5_SATEDU", "QS4_6_DISAPPOINTED", "QS4_12_TRUST1_1_1", "QS4_12_TRUST1_2_2", "QS4_12_TRUST1_3_3", "QS4_12_TRUST1_4_4", "QS4_12_TRUST1_5_5", "QS4_13_LIFEEVE1_1_1", "QS4_13_LIFEEVE1_2_2", "QS4_13_LIFEEVE1_3_3", "QS4_13_LIFEEVE1_4_4", "QS4_13_LIFEEVE1_5_5", "QS4_13_LIFEEVE1_6_6", "QS4_14_FORMALVOL", "QS4_16_FORMALVOL", "QS4_17_SERVEDASM", "QS4_18_CURRENTOR", "QS4_19_CURRENTME1", "QS4_19_CURRENTME2", "QS4_19_CURRENTME3", "QS4_21_MENTORING", "QS4_22_PASTMENTO", "QS4_23_PASTFORMA2", "QS4_23_PASTFORMA3", "QS4_25_FUTUREMEN", "QS4_26_INTERNETC", "QS4_27_INTERNETC1_1_1", "QS4_27_INTERNETC1_2_2", "QS4_27_INTERNETC1_3_3", "QS4_27_INTERNETC1_4_4", "QS4_28_INTERNETCON", "QS4_29_PRIVATECONN", "QS4_30_INTERNETCON", "QS4_31_MOBILECONNE", "QS4_32_MOBILECONNE1_1_1", "QS4_32_MOBILECONNE1_2_2", "QS4_32_MOBILECONNE1_3_3", "QS4_32_MOBILECONNE1_4_4", "QS4_33_MOBILECONNECT")
+```
+
+```{r}
+youth <- youth |>
+  mutate(across(all_of(cate_vars), as_factor))
+```
+
+```{r}
+# drop `Match_PreferNotToSay` or convert to long format for the matching choice columns?
+# : 
+
+# data_long <- data %>%
+#   select(all_of(match_columns)) %>%
+#   pivot_longer(cols = everything(), names_to = "Category", values_to = "Value") %>%
+#   filter(Value == 1) %>%
+#   mutate(Category = gsub("^Match_", "", Category)) %>%
+#   group_by(row_number()) %>%
+#   summarise(Matches = list(Category))  # Or paste(Category, collapse = ",")
+
+# print(data_long)
+```
+
+#### Convert all Likert scale items columns into ordinal (i.e., ordered factor in R) data type
+
+```{r}
+ordinal_numeric_vars <- c("QS1_18_PARENTEDUC1", "QS1_18_PARENTEDUC2", "QS2_19_DURATION_1", "QS2_20_EXPERIENCE_1", "QS2_19_DURATION_2", "QS2_20_EXPERIENCE_2", "QS2_19_DURATION_3", "QS2_20_EXPERIENCE_3", "QS2_30_MATCHSIMILAR1_1_1", "QS2_30_MATCHSIMILAR1_2_2", "QS2_30_MATCHSIMILAR1_3_3", "QS2_30_MATCHSIMILAR1_4_4", "QS2_30_MATCHSIMILAR1_5_5", "QS2_31_MENTORINGREL1_1_1", "QS2_31_MENTORINGREL1_2_2", "QS2_31_MENTORINGREL1_3_3", "QS2_31_MENTORINGREL1_4_4", "QS2_31_MENTORINGREL1_5_5", "QS2_32_MENTORINGENG1_1_1", "QS2_32_MENTORINGENG1_2_2", "QS2_32_MENTORINGENG1_3_3", "QS2_32_MENTORINGENG1_4_4", "QS2_32_MENTORINGENG1_5_5", "QS2_32_MENTORINGENG1_6_6", "QS2_32_MENTORINGENG1_7_7", "QS2_32_MENTORINGENG1_8_8", "QS2_32_MENTORINGENG1_9_9", "QS2_32_MENTORINGENG1_10_10", "QS2_32_MENTORINGENG1_11_11", "QS2_32_MENTORINGENG1_12_12", "QS2_32_MENTORINGENG1_13_13", "QS2_32_MENTORINGENG1_14_14", "QS2_32_MENTORINGENG1_15_15", "QS2_32_MENTORINGENG1_16_16", "QS2_32_MENTORINGENG1_17_17", "QS2_32_MENTORINGENG1_18_18", "QS2_32_MENTORINGENG1_19_19", "QS2_32_MENTORINGENG1_20_20", "QS2_32_MENTORINGENG1_21_21", "QS2_32_MENTORINGENG1_22_22", "QS2_35_SUPPORTSIMPO1_1_1", "QS2_35_SUPPORTSIMPO1_2_2", "QS2_35_SUPPORTSIMPO1_3_3", "QS2_35_SUPPORTSIMPO1_4_4", "QS2_35_SUPPORTSIMPO1_5_5", "QS2_35_SUPPORTSIMPO1_6_6", "QS2_35_SUPPORTSIMPO1_7_7", "QS2_35_SUPPORTSIMPO1_8_8", "QS2_35_SUPPORTSIMPO1_9_9", "QS2_35_SUPPORTSIMPO1_10_10", "QS2_37_HELPFULNESS", "QS_40_REMATCHING_2", "QS_40_REMATCHING_3", "QS3_1_GLOBALSELFWOR1_1_1", "QS3_1_GLOBALSELFWOR1_2_2", "QS3_1_GLOBALSELFWOR1_3_3", "QS3_1_GLOBALSELFWOR1_4_4", "QS3_1_GLOBALSELFWOR1_5_5", "QS3_1_GLOBALSELFWOR1_6_6", "QS3_1_GLOBALSELFWOR1_7_7", "QS3_1_GLOBALSELFWOR1_8_8", "QS3_5_SCHOOLCLIMATE1_1_1", "QS3_5_SCHOOLCLIMATE1_2_2", "QS3_5_SCHOOLCLIMATE1_3_3", "QS3_5_SCHOOLCLIMATE1_4_4", "QS3_5_SCHOOLCLIMATE1_5_5", "QS3_5_SCHOOLCLIMATE1_6_6", "QS3_5_SCHOOLCLIMATE1_7_7", "QS3_5_SCHOOLCLIMATE1_8_8", "QS3_5_SCHOOLCLIMATE1_9_9", "QS3_5_SCHOOLCLIMATE1_10_10", "QS4_2_MEANINGFULPERSON",    "QS4_8_HELPSEEKING1_1_1", "QS4_8_HELPSEEKING1_2_2", "QS4_8_HELPSEEKING1_3_3", "QS4_8_HELPSEEKING1_4_4", "QS4_8_HELPSEEKING1_5_5", "QS4_8_HELPSEEKING1_6_6", "QS4_8_HELPSEEKING1_7_7", "QS4_8_HELPSEEKING1_8_8", "QS4_8_HELPSEEKING1_9_9", "QS4_8_HELPSEEKING1_10_10", "QS4_10_MENTALWELLBE1_1_1", "QS4_10_MENTALWELLBE1_2_2", "QS4_10_MENTALWELLBE1_3_3", "QS4_10_MENTALWELLBE1_4_4", "QS4_10_MENTALWELLBE1_5_5", "QS4_10_MENTALWELLBE1_6_6", "QS4_10_MENTALWELLBE1_7_7") 
+
+ordinal_chr_vars <- c("QS2_6_MENTOREXPER", "QS2_34_SUPPORTS1_1_1", "QS2_34_SUPPORTS1_2_2", "QS2_34_SUPPORTS1_3_3", "QS2_34_SUPPORTS1_4_4", "QS2_34_SUPPORTS1_5_5", "QS2_34_SUPPORTS1_6_6", "QS2_34_SUPPORTS1_7_7", "QS2_34_SUPPORTS1_8_8", "QS2_34_SUPPORTS1_9_9", "QS2_36_INFLUENCE1_1_1", "QS2_36_INFLUENCE1_2_2", "QS2_36_INFLUENCE1_3_3", "QS2_36_INFLUENCE1_4_4", "QS2_36_INFLUENCE1_5_5", "QS2_36_INFLUENCE1_6_6", "QS2_36_INFLUENCE1_7_7", "QS2_36_INFLUENCE1_8_8", "QS2_36_INFLUENCE1_9_9", "QS4_3_CAREERPLANNIN1_1_1", "QS4_3_CAREERPLANNIN1_2_2", "QS4_3_CAREERPLANNIN1_3_3", "QS4_3_CAREERPLANNIN1_4_4", "QS4_3_CAREERPLANNIN1_5_5", "QS4_3_CAREERPLANNIN1_6_6", "QS4_3_CAREERPLANNIN1_7_7", "QS4_3_CAREERPLANNIN1_8_8", "QS4_7_SOCIALCAPITAL1_1_1", "QS4_7_SOCIALCAPITAL1_2_2", "QS4_7_SOCIALCAPITAL1_3_3", "QS4_7_SOCIALCAPITAL1_4_4","QS4_9_MENTALHEALTH",  "QS4_11_BELONGING","QS4_20_MENTEEAGE", "QS4_24_FUTUREMEN")
+```
+
+```{r}
+youth <- youth |>
+  mutate(across(all_of(ordinal_numeric_vars), as_factor)) # converts ordinal items encoded in either (1) numbers or (2) strings into factor.
+youth <- youth |>
+  mutate(across(all_of(ordinal_chr_vars), as_factor)) 
+```
+
+#### Convert [string/character]{.underline} Likert scale level columns into ordered numeric:
+
+1.  Specify string/character-labeled Likert levels:
+
+```{r}
+experience_ord <- list(levels = 1:5, labels = c("Always negative", "Mostly negative", "Somewhat positive", "Mostly positive", "Always positive"))
+support_ord <- list(levels = 1:3, labels = c("Not very true","Sometimes true","Very true"))
+influence_ord <- list(levels = 1:4, labels = c("A little","Some","Quite a bit","A lot")) # No 'None' in response range
+career_plan_ord <- list(levels = 1:7, labels = c("Completely disagree","Disagree","Somewhat disagree","Unsure","Somewhat agree","Agree","Completely agree"))
+social_capital_ord <- list(levels = 1:5, labels = c("Strongly disagree","Disagree","Neutral","Agree","Strongly Agree"))
+mental_health_ord <- list(levels = 1:5, labels = c("Poor","Fair","Good","Very good", "Excellent")) 
+# "Don't know"  / 'Prefer not to answer' is not included (previously filtered)
+belonging_ord <- list(levels = 1:4, labels = c("Very weak","Somewhat weak","Somewhat strong","Very strong"))
+mentee_age_ord <- list(levels = 1:4, labels = c("Under 18 years old","18-25 years old","26-29 years old","30 years old or older"))
+mentoring_interest_ord <- list(levels = 1:4, labels = c("Not interested at all", "Not that interested","Fairly interested","Very interested"))
+```
+
+2.  Compile all character-labeled Likert items in a list (i.e., a list of list in this case).
+
+```{r}
+lst_of_ord_cols <- list(QS2_6_MENTOREXPER = experience_ord,
+                        
+                        QS2_34_SUPPORTS1_1_1 = support_ord,
+                        QS2_34_SUPPORTS1_2_2 = support_ord,
+                        QS2_34_SUPPORTS1_3_3 = support_ord,
+                        QS2_34_SUPPORTS1_4_4 = support_ord,
+                        QS2_34_SUPPORTS1_5_5 = support_ord,
+                        QS2_34_SUPPORTS1_6_6 = support_ord,
+                        QS2_34_SUPPORTS1_7_7 = support_ord,
+                        QS2_34_SUPPORTS1_8_8 = support_ord,
+                        QS2_34_SUPPORTS1_9_9 = support_ord,
+                        
+                        QS2_36_INFLUENCE1_1_1 = influence_ord,
+                        QS2_36_INFLUENCE1_2_2 = influence_ord,
+                        QS2_36_INFLUENCE1_3_3 = influence_ord,
+                        QS2_36_INFLUENCE1_4_4 = influence_ord,
+                        QS2_36_INFLUENCE1_5_5 = influence_ord,
+                        QS2_36_INFLUENCE1_6_6 = influence_ord,
+                        QS2_36_INFLUENCE1_7_7 = influence_ord,
+                        QS2_36_INFLUENCE1_8_8 = influence_ord,
+                        QS2_36_INFLUENCE1_9_9 = influence_ord,
+                        
+                        QS4_3_CAREERPLANNIN1_1_1 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_2_2 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_3_3 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_4_4 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_5_5 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_6_6 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_7_7 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_8_8 = career_plan_ord,
+                        
+                        QS4_7_SOCIALCAPITAL1_1_1 = social_capital_ord,
+                        QS4_7_SOCIALCAPITAL1_2_2 = social_capital_ord,
+                        QS4_7_SOCIALCAPITAL1_3_3 = social_capital_ord,
+                        QS4_7_SOCIALCAPITAL1_4_4 = social_capital_ord,
+                        
+                        QS4_9_MENTALHEALTH = mental_health_ord,
+                        QS4_11_BELONGING = belonging_ord,
+                        QS4_20_MENTEEAGE = mentee_age_ord,
+                        QS4_24_FUTUREMEN = mentoring_interest_ord)
+```
+
+3.  Write a function to convert all character labels to the correct ordinal numeric scores!
+
+##### Function 1: For converting string type ordinal leveled columns into well-ordered integers:
+
+```{r}
+convert_string_ord_fac <- function(data, lst_ord_level_cols, lst_col_names) {
+ data <- data |>
+  mutate(across(.cols = all_of(lst_col_names),
+                .fns = ~ {
+                  col_name <- cur_column()
+                  scale <- lst_ord_level_cols[[col_name]]
+                  factor(.x, 
+                         levels = scale$labels, # the string lebels are the 'levels'
+                         labels = scale$levels, # now we want the `labels` to be numeric, according to the levels.
+                         ordered = TRUE)}))
+    return(data)
+}
+```
+
+> Apply above function `convert_ord_fac()`
+
+```{r}
+youth |> select(all_of(c(ordinal_chr_vars))) |> str() # before conversion
+youth <- convert_string_ord_fac(youth, lst_of_ord_cols, ordinal_chr_vars)
+
+youth |> select(all_of(c(ordinal_chr_vars))) |> str() # after conversion
+  # Validated! Success!
+```
+
+##### Function 2: For converting numeric type ordinal leveled columns into ordered factor
+
+```{r}
+convert_number_ord_fac <- function(data, lst_col_names) {
+  data[lst_col_names] <- lapply(data[lst_col_names], function(x) {
+    factor(x, levels = sort(unique(x)), ordered = TRUE)
+  })
+  
+  return(data)
+}
+```
+
+> Apply above Function 2 to `ordinal_numeric_vars`
+
+```{r}
+youth |> select(all_of(c(ordinal_numeric_vars))) |> str() # before conversion
+
+youth <- convert_number_ord_fac(youth, ordinal_numeric_vars)
+youth |> select(all_of(c(ordinal_numeric_vars))) |> str() # after conversion
+  # Validated! Another success!
+```
+
+# Ridge Regression 1 – Outcome variable: Yearly income
+
+## Data train-test split
+
+```{r}
+split <- initial_split(youth, prop = .75, strata = QS1_28_EMPLOYMENT_calculated)
+train_data <- training(split)
+test_data <- testing(split)
+```
+
+#### Impute missing NA data for ordinal columns:
+
+-   Imputation should be done [**after**]{.underline} train/test data splitting to prevent test data leakage into the train set!
+
+-   <div>
+
+    > `QS1_18_PARENTEDUC1` `QS1_18_PARENTEDUC2`
+
+    </div>
+
+```{r}
+preprocessing_recipe <- recipes::recipe(QS1_28_EMPLOYMENT_calculated ~ ., data = train_data) |>
+    # step_impute_knn(all_of(c(all_nominal_predictors(), all_numeric_predictors())), -all_of(metric_vars), neighbors = 5) |>
+# Too computational time consuming--pass it just for now.
+    step_impute_mode(all_ordered_predictors()) |>
+    step_mutate_at(all_ordered_predictors(), fn = as.numeric) |>
+
+    step_impute_mode(all_nominal_predictors()) |>
+    step_dummy(all_nominal_predictors(), one_hot = TRUE) |> # cate_vars are those vars that were categorical but not ohe.
+
+    step_impute_mean(all_of(metric_vars)) |>
+    step_impute_median(all_numeric_predictors(), -all_of(metric_vars)) |>
+    step_impute_median(all_outcomes())
+```
+
+> **Comment**:
+>
+> > Code viewers can run the following code snippet in the console to see concise count of each ordinal level! :
+>
+> ```         
+> imputed_train |> select(all_of(c(ordinal_numeric_vars, ordinal_chr_vars))) |> summary()
+> imputed_train |> select(all_of(ordinal_chr_vars)) |> summary()
+> ```
+
+```{r}
+ imputed_train <- preprocessing_recipe |>
+                     prep() |>
+                  bake(new_data = NULL)
+```
+
+#### Export train/test data sets
+
+As comma separated file:
+
+```{r}
+# write_csv(train_data, "../../dssg-2025-mentor-canada/Data/train.csv")
+# write_csv(test_data, "../../dssg-2025-mentor-canada/Data/test.csv")
+
+# write_csv(imputed_train, "../../dssg-2025-mentor-canada/Data/imputed_train.csv")
+
+```
+
+As R object (to retain the transformed data types)
+
+```{r}
+# write_rds(train_data, "../../dssg-2025-mentor-canada/Data/train.Rds")
+# write_rds(test_data, "../../dssg-2025-mentor-canada/Data/test.Rds")
+
+# write_rds(imputed_train, "../../dssg-2025-mentor-canada/Data/imputed_train.Rds")
+```
+
+## Model fitting: Linear model
+
+```{r}
+model <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+            QS3_4_LIFEEVENTS1_16_16_X1 + 
+            QS3_4_LIFEEVENTS1_18_18_X1 + 
+            QS2_3_PRESENCEOFM_Yes + 
+            QS2_9_PRESENCEOFA_Yes + 
+            QS2_6_MENTOREXPER + 
+            QS1_1_AGE + 
+            QS1_23_YEARCOMPLE + 
+            QS2_3_PRESENCEOFM_Yes * QS3_4_LIFEEVENTS1_11_11_X1 + 
+            QS2_3_PRESENCEOFM_Yes * QS3_4_LIFEEVENTS1_16_16_X1 + 
+            QS2_3_PRESENCEOFM_Yes * QS3_4_LIFEEVENTS1_18_18_X1 + 
+            QS2_3_PRESENCEOFM_Yes * QS2_9_PRESENCEOFA_Yes, 
+            data = imputed_train)
+summary(model)
+```
+
+> -   Low R-squared suggests that the predictors, as specified, have limited practical/explanatory power for income.
+>
+> -   `QS3_4_LIFEEVENTS1_16_16_X1` Significant at p \< 0.05.
+>
+>     -   Having worked to support the family in youth is associated with a \$133,810 increase in income, possibly suggesting that early work experience contribute to later career success.
+>
+> -   `QS1_23_YEARCOMPLE`: Each later year of completing higher education is associated with a \$29,265 **decrease** in income.
+>
+>     -   This could suggest that earlier graduates (i.e., smaller year values) had more time in the workforce or entered better economic conditions, thereby earning more than newer graduates.
+>
+> -   `QS3_4_LIFEEVENTS1_16_16_X1 * QS2_3_PRESENCEOFM_Yes` : For respondents with a childhood mentor, the positive effect of youth employment on income seems to be reduced by 225,534.
+>
+>     -   This suggests that childhood mentorship may diminish the income benefits of youth employment, possibly because mentorship could provides alternative advice/ways that reduce the need for early work (e.g., a more academic / education focus?).
+
+#### Multicollinearity:
+
+```{r}
+vif(model)
+```
+
+```{r}
+model_mentors_influence <- lm(QS1_28_EMPLOYMENT_calculated ~  QS2_36_INFLUENCE1_1_1 + 
+                                QS2_36_INFLUENCE1_2_2 + 
+                                QS2_36_INFLUENCE1_3_3 + 
+                                QS2_36_INFLUENCE1_4_4 + 
+                                QS2_36_INFLUENCE1_5_5 + 
+                                QS2_36_INFLUENCE1_6_6 + 
+                                QS2_36_INFLUENCE1_7_7 + 
+                                QS2_36_INFLUENCE1_8_8 + 
+                                QS2_36_INFLUENCE1_9_9, 
+
+                                data = imputed_train)
+summary(model_mentors_influence)
+```
+
+```         
+```
+
+## Model specification (Lasso regression with L1 regularization with `mixture = 1`)
+
+(Workflow with tidymodels–for now has echo: false)
+
+```{r}
+#| echo: false
+# ridge_spec <- linear_reg(penalty = tune(), mixture = 0) |> 
+# set_mode("regression") |> 
+# set_engine("glmnet")
+```
+
+```{r}
+#| echo: false
+
+# fit <- linear_reg(penalty = 1) |>
+#         set_engine("glmnet") |>
+#         fit(QS1_28_EMPLOYMENT_calculated ~ ., data = imputed_train_fit)
+
+# lm_wkflw <- workflow() |>
+#         add_recipe(recipe_to_fit) |>
+#         add_model(lm_spec)
+#         fit(lm_wkflw, data = imputed_train_fit)
+```
+
+#### Define cross-validation (CV) folds for tuning & grid:
+
+```{r}
+#| echo: false
+
+# cv_folds <- vfold_cv(imputed_train_fit, v = 10)
+# grid <- grid_regular(penalty(range = c(-3, 3)), levels = 20)
+```
+
+### `Tidymodels` Workflow
+
+```{r}
+#| echo: false
+
+#ridge_wkflw <- workflow() |>       
+#add_recipe(recipe_to_fit) |>     
+#add_model(ridge_spec)
+```
+
+### Tuning Regularization Penalty
+
+```{r}
+#| echo: false
+
+# ridge_tune <- tune_grid(ridge_wkflw, resamples = cv_folds, grid = grid, metrics = metric_set(rmse))
+```
+
+```{r}
+#| echo: false
+
+# Fit Ridge model (alpha = 0)
+# View model summary
+
+```
+
+```{r}
+#| echo: false
+
+  # Perform cross-validation to select optimal lambda
+# x_train <- select(imputed_train, -QS1_28_EMPLOYMENT_calculated)
+# y_train <- select(imputed_train, QS1_28_EMPLOYMENT_calculated)
+
+# # Optimal lambda
+# best_lambda <- cv_ridge$lambda.min
+
+# # Plot cross-validation results
+# plot(cv_ridge)
+```
+
+```{r}
+#| echo: false
+
+#   ses_youth <- select(youth, QS3_4_LIFEEVENTS1_11_11, QS3_4_LIFEEVENTS1_16_16, QS3_4_LIFEEVENTS1_18_18, QS1_28_EMPLOYMENT_calculated)
+# rec <- recipe(QS1_28_EMPLOYMENT_calculated~QS3_4_LIFEEVENTS1_11_11 + QS3_4_LIFEEVENTS1_16_16 + QS3_4_LIFEEVENTS1_18_18, data = ses_youth)
+# dummies_recipe <- rec |> step_dummy(all_predictors(), one_hot = TRUE)
+# dummies_data <- dummies_recipe |> prep() |> bake(new_data = NULL)
+# dummies_data
+```
+
+## XGB
+
+#### XGB model 1:
+
+#### All 3 SES indicators, mentor experiences, age, and year of higher education completion.
+
+```{r}
+#| output: false
+x <- model.matrix(~ QS3_4_LIFEEVENTS1_16_16_X1 + QS2_3_PRESENCEOFM_Yes + 
+                  QS2_9_PRESENCEOFA_Yes + QS2_6_MENTOREXPER + 
+                  QS1_1_AGE + QS1_23_YEARCOMPLE, 
+                  data = imputed_train)[, -1]
+y <- log(imputed_train$QS1_28_EMPLOYMENT_calculated + 1)
+dmatrix <- xgb.DMatrix(x, label = y)
+xgb_model <- xgboost(data = dmatrix, nrounds = 100, objective = "reg:squarederror", 
+                     params = list(max_depth = 4, eta = 0.1))
+xgb.importance(model = xgb_model)
+
+xgb.plot.importance(xgb.importance(model = xgb_model))
+
+```
+
+```{r}
+#| output: false
+xgb_importance_df <- xgb.importance(model = xgb_model)
+
+xgb_cv <- xgb.cv(params = list(max_depth = 4, eta = 0.1), data = dmatrix, nrounds = 200, nfold = 5)
+```
+
+```{r}
+xgb.plot.importance(xgb.importance(model = xgb_model))
+kable(xgb_importance_df)
+```
+
+#### XGB model 2:
+
+#### All 3 SES indicators, mentor experiences, and age.
+
+```{r}
+#| output: false
+x <- model.matrix(~ QS3_4_LIFEEVENTS1_11_11_X1 + QS3_4_LIFEEVENTS1_16_16_X1 +  QS3_4_LIFEEVENTS1_18_18_X1 + QS2_3_PRESENCEOFM_Yes + QS2_9_PRESENCEOFA_Yes + QS2_6_MENTOREXPER + QS1_1_AGE, data = imputed_train)[, -1]
+
+y <- log(imputed_train$QS1_28_EMPLOYMENT_calculated + 1)
+dmatrix <- xgb.DMatrix(x, label = y)
+xgb_model <- xgboost(data = dmatrix, nrounds = 100, objective = "reg:squarederror", 
+params = list(max_depth = 4, eta = 0.1))
+
+xgb_importance_df <- xgb.importance(model = xgb_model)
+
+xgb_cv <- xgb.cv(params = list(max_depth = 4, eta = 0.1), data = dmatrix, nrounds = 200, nfold = 5)
+```
+
+```{r}
+xgb.plot.importance(xgb.importance(model = xgb_model))
+kable(xgb_importance_df)
+```
