@@ -1,0 +1,98 @@
+---
+title: LCA
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+---
+
+```{r}
+library(poLCA)
+library(dplyr) 
+library(tidyr) 
+library(ggplot2)
+
+youth <- read_csv("../../dssg-2025-mentor-canada/Data/youth_tidy.csv")
+
+youth$latentClassVariable <- dplyr::case_when(
+  youth$`45_mental_health_rating` %in% c("Good", "Excellent", "Very good", "Fair") ~ 1,
+  youth$`45_mental_health_rating` == "Poor" ~ 0,
+  TRUE ~ NA_real_  
+) 
+
+ses_indicators <- c("38_social_assistance", "38_work_to_support_family", "38_food_bank_use")
+
+youth_lca <- youth %>%
+  filter(across(all_of(ses_indicators), ~ .x %in% c(1, 2))) %>%  # keep only valid 1/2 responses
+  mutate(across(all_of(ses_indicators), ~ ifelse(.x == 1, 1, 0))) %>%  # recode 1 → 1, 2 → 0
+  mutate(across(all_of(ses_indicators), as.factor))
+
+youth_lca <- youth_lca %>%
+  mutate(across(all_of(ses_indicators), ~ factor(.x, levels = c(0, 1), labels = c("No", "Yes"))))
+
+f <- as.formula(paste("cbind(", paste0("`", ses_indicators, "`", collapse = ", "), ") ~ 1"))
+
+# 3 balances complexity and interpretability 
+set.seed(123)
+lca_2 <- poLCA(f, data = youth_lca, nclass = 2, maxiter = 1000, na.rm = FALSE)
+```
+
+```{r}
+lca_probs <- lca_2$probs
+
+# Focus on Pr(Yes) (response == 1)
+plot_data <- lapply(names(lca_probs), function(var) {
+  probs_matrix <- lca_probs[[var]]
+  
+  data.frame(
+    SES_indicator = var,
+    class = paste0("Class ", 1:nrow(probs_matrix)),
+    prob = probs_matrix[, "Pr(2)"]  # explicitly use "Yes"
+  )
+}) %>% bind_rows()
+
+
+class_props <- round(lca_2$P * 100, 1)
+# Clean up class column to get numeric class index
+plot_data$class_num <- as.numeric(gsub("Class ", "", plot_data$class))
+
+# Now use those to index into class proportions
+plot_data$class_label <- factor(paste0("Class ", plot_data$class_num, " (", class_props[plot_data$class_num], "%)"))
+
+
+plot_data$SES_indicator <- recode(plot_data$SES_indicator,
+  "38_social_assistance" = "Social Assistance",
+  "38_work_to_support_family" = "Work to Support Family",
+  "38_food_bank_use" = "Food Bank Use"
+)
+
+ggplot(plot_data, aes(x = SES_indicator, y = prob, group = class_label, color = class_label)) +
+  geom_line(aes(shape = class_label), size = 1) +
+  geom_point(size = 3) +
+  scale_y_continuous(limits = c(0, 1), expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title = "Conditional Probability of SES Indicators by Latent Class",
+    x = "SES Indicator",
+    y = "P(Selecting 1 | Class)",
+    color = "Latent Class",
+    shape = "Latent Class"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+```
+
+```{r}
+youth_lca$assigned_class <- lca_2$predclass
+
+summary_table <- youth_lca %>%
+  filter(!is.na(latentClassVariable)) %>%
+  select(assigned_class, latentClassVariable) %>%
+  group_by(assigned_class, latentClassVariable) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(assigned_class) %>%
+  mutate(pct = round(100 * n / sum(n), 1))
+
+summary_table
+```
