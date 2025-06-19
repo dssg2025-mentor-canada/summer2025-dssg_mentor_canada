@@ -501,6 +501,7 @@ model <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 +
             QS2_3_PRESENCEOFM_Yes * QS2_9_PRESENCEOFA_Yes, 
             data = imputed_train)
 summary(model)
+
 ```
 
 > -   Low R-squared suggests that the predictors, as specified, have limited practical/explanatory power for income.
