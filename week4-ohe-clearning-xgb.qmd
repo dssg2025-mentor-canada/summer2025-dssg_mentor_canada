@@ -501,6 +501,7 @@ model <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 +
             QS2_3_PRESENCEOFM_Yes * QS2_9_PRESENCEOFA_Yes, 
             data = imputed_train)
 summary(model)
+
 ```
 
 > -   Low R-squared suggests that the predictors, as specified, have limited practical/explanatory power for income.
@@ -678,5 +679,6 @@ xgb_cv <- xgb.cv(params = list(max_depth = 4, eta = 0.1), data = dmatrix, nround
 
 ```{r}
 xgb.plot.importance(xgb.importance(model = xgb_model))
+write_csv(xgb_importance_df, "outputs/tables/week-04/02-xgb-importance.csv")
 kable(xgb_importance_df)
 ```
