@@ -19,6 +19,8 @@ Ridge Regression is a linear regression technique that adds `L2 regularization` 
 library(tidymodels)
 library(tidyverse)
 library(knitr)
+library(arrow)
+
 library(car)
 library(interactions)
 library(glmnet)
@@ -364,7 +366,7 @@ lst_of_ord_cols <- list(QS2_6_MENTOREXPER = experience_ord,
 
 ##### Function 1: For converting string type ordinal leveled columns into well-ordered integers:
 
-```{r}
+```{r *}
 convert_string_ord_fac <- function(data, lst_ord_level_cols, lst_col_names) {
  data <- data |>
   mutate(across(.cols = all_of(lst_col_names),
@@ -413,7 +415,7 @@ youth |> select(all_of(c(ordinal_numeric_vars))) |> str() # after conversion
   # Validated! Another success!
 ```
 
-# Ridge Regression 1 – Outcome variable: Yearly income
+# Regression – Outcome variable: Yearly income
 
 ## Data train-test split
 
@@ -443,6 +445,8 @@ preprocessing_recipe <- recipes::recipe(QS1_28_EMPLOYMENT_calculated ~ ., data =
     step_impute_mode(all_nominal_predictors()) |>
     step_dummy(all_nominal_predictors(), one_hot = TRUE) |> # cate_vars are those vars that were categorical but not ohe.
 
+    step_center(all_of(metric_vars)) |>
+    step_scale(all_of(metric_vars)) |>
     step_impute_mean(all_of(metric_vars)) |>
     step_impute_median(all_numeric_predictors(), -all_of(metric_vars)) |>
     step_impute_median(all_outcomes())
@@ -450,12 +454,14 @@ preprocessing_recipe <- recipes::recipe(QS1_28_EMPLOYMENT_calculated ~ ., data =
 
 > **Comment**:
 >
-> > Code viewers can run the following code snippet in the console to see concise count of each ordinal level! :
+> 1.  Code viewers can run the following code snippet in the console to see concise count of each ordinal level! :
 >
 > ```         
-> imputed_train |> select(all_of(c(ordinal_numeric_vars, ordinal_chr_vars))) |> summary()
-> imputed_train |> select(all_of(ordinal_chr_vars)) |> summary()
+>     imputed_train |> select(all_of(c(ordinal_numeric_vars, ordinal_chr_vars))) |> summary()
+>     imputed_train |> select(all_of(ordinal_chr_vars)) |> summary()
 > ```
+>
+> 2.  Continuous variables are standardized.
 
 ```{r}
  imputed_train <- preprocessing_recipe |>
@@ -463,25 +469,65 @@ preprocessing_recipe <- recipes::recipe(QS1_28_EMPLOYMENT_calculated ~ ., data =
                   bake(new_data = NULL)
 ```
 
+#### Only one-hot encode the nominal columns without imputation:
+
+-   Continuous variables are standardized.
+
+```{r}
+preprocessing_recipe_ohe_unimputed <- recipes::recipe(QS1_28_EMPLOYMENT_calculated ~ ., data = train_data) |>
+    step_dummy(all_of(cate_vars), one_hot = TRUE) |>
+
+    step_center(all_of(metric_vars)) |>
+    step_scale(all_of(metric_vars))
+```
+
+```{r}
+ohe_unimputed_train <- preprocessing_recipe_ohe_unimputed |>
+                     prep() |>
+                  bake(new_data = NULL)
+```
+
+> Validate post-ohe, column names are the same between `imputed_train` and `ohe_unimputed_train`:
+
+```{r}
+identical(ncol(ohe_unimputed_train), ncol(imputed_train))
+identical(nrow(ohe_unimputed_train), nrow(imputed_train))
+nrow(ohe_unimputed_train)
+nrow(youth)
+# Outputs TRUE! They are the same!
+```
+
+# Data frame export:
+
 #### Export train/test data sets
 
 As comma separated file:
 
 ```{r}
-# write_csv(train_data, "../../dssg-2025-mentor-canada/Data/train.csv")
-# write_csv(test_data, "../../dssg-2025-mentor-canada/Data/test.csv")
+# write_csv(train_data, "../../dssg-2025-mentor-canada/Data/umimputed_train.csv")
+# write_csv(ohe_unimputed_train, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.csv")
+# write_csv(test_data, "../../dssg-2025-mentor-canada/Data/umimputed_test.csv")
+# 
 
-# write_csv(imputed_train, "../../dssg-2025-mentor-canada/Data/imputed_train.csv")
+# write_csv(imputed_train, "../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.csv")
 
 ```
 
 As R object (to retain the transformed data types)
 
 ```{r}
-# write_rds(train_data, "../../dssg-2025-mentor-canada/Data/train.Rds")
-# write_rds(test_data, "../../dssg-2025-mentor-canada/Data/test.Rds")
+# write_rds(train_data, "../../dssg-2025-mentor-canada/Data/umimputed_train.Rds")
+# write_rds(test_data, "../../dssg-2025-mentor-canada/Data/umimputed_test.Rds")
 
-# write_rds(imputed_train, "../../dssg-2025-mentor-canada/Data/imputed_train.Rds")
+# write_rds(imputed_train, "../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.Rds")
+```
+
+-   Alternative option: Try use `Feature` to preserve transformed data type:
+
+```{r}
+write_feather(train_data, "../../dssg-2025-mentor-canada/Data/umimputed_train.feather")
+write_feather(imputed_train, "../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.feather")
+write_feather(ohe_unimputed_train, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather")
 ```
 
 ## Model fitting: Linear model
@@ -682,3 +728,5 @@ xgb.plot.importance(xgb.importance(model = xgb_model))
 write_csv(xgb_importance_df, "outputs/tables/week-04/02-xgb-importance.csv")
 kable(xgb_importance_df)
 ```
+
+##
