@@ -13,7 +13,9 @@ dependencies:
   - matplotlib
   - siuba
   - plotly
+  - pyarrow
   - langchain # LLM library for NLP 
   - chromadb # vector storage
   - pypdf # loading PDFs
   - pytest # unit tests
+

@@ -93,7 +93,7 @@ Honing in on those who are at a much unfortunate SES situation, our (1) first go
 
 > Parent(s) or guardian(s) received **social assistance** such as 'welfare' or disability support" during youth (12-18 years old).
 
-![Comparing proportion of youth or their family on social assistance with/without early life mentorship](outputs/figures/week-03-ses-teen-social-assistance-proportion-(early-mentor).png){#fig-assistance_early_mentor fig-align="center" width="60%"}
+![Comparing proportion of youth or their family on social assistance with/without early life mentorship](outputs/figures/week-03/week-03-ses-teen-social-assistance-proportion-(early-mentor).png){#fig-assistance_early_mentor fig-align="center" width="60%"}
 
 **Observation to @fig-assistance_early_mentor**: Among the subset of individuals who selected "Yes" to 2 or all of the SES indicator variables, there is a larger proportion of teens whose family was on social assistance with mentor experience as a young kid. There are several possibilities to this observation:
 
