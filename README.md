@@ -1,4 +1,8 @@
-# summer2025-dssg_mentor_canada
+# Exploring the Impact of Youth Mentorship through Data Science
+
+***Mentor Canada*** advocates for equitable access to high-quality mentorship for youth across Canada, acknowledging that mentors can have a lasting positive impact in helping young people build stronger future-planning skills and achieve better career outcomes. However, significant barriers such as lower socioeconomic status (SES), often limit mentorship access. By leveraging a rich survey dataset comprising over 2,800 responses using data science techniques, we aim to uncover hidden patterns and inequities to catalyze better mentorship practice and public awareness of mentorship. This unique opportunity will deepen the current understanding of youth mentorship’s impact and drive meaning change through the lens of data science, allowing us to translate data-driven insights into actionable recommendations for families, educators, and policymakers.
+
+Supervised by the [**Data Science for Social Good (DSSG)**](https://dsi.ubc.ca/data-science-social-good/2025) fellowhsip program at UBC's Data Science Institute, we use the this repository to share all weekly progress and workflows for our Mentor Canada project.
 
 ## To replicate this analysis' python environment:
 
