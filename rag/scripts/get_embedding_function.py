@@ -1,6 +1,6 @@
 # make sure to pip install langchain-community
 
-from langchain_community.embeddings.ollama import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 # for later (web deployment)
 from langchain_community.embeddings.bedrock import BedrockEmbeddings
