@@ -54,7 +54,7 @@ text_columns = ['QS1_6_Other', 'QS1_9_Other', 'QS1_11_Other', 'QS1_16_Other', 'Q
 
 ### Encode Columns
 
-#### Make column names interpertable for Q4
+#### Make column names interpretable for Q4
 
 ```{python}
 
@@ -81,18 +81,24 @@ youth.rename(columns={
 
 ## Distribution of Age variable
 
-![Age Distribution](outputs/01_age_distribution.png)Estimated yearly income distribution (15_yearly_income)
+## ![Age Distribution](outputs/figures/week-02/01_age_distribution.png)Estimated yearly income distribution (15_yearly_income)
 
--   ![Yearly Income Distribution](outputs/15_yearly_income_distribution.png) (Presented also in last week's notebook)
+-   ![Yearly Income Distribution](outputs/figures/week-02/15_yearly_income_distribution.png) (Presented also in last week's notebook)
 
 -   Median as the central tendency is less susceptible to extreme outliers.
 
 ## Income output and Transgender Identity
 
-![Income output and Transgender Identity](outputs/07_trans_identity-income.png) \## Early mentor experience and mental health rating outcome ![Early mentor experience and mental health rating outcome](outputs/18_early_mentor-mental_health.png)
+## ![Income output and Transgender Identity](outputs/figures/week-02/07_trans_identity-income.png)Early mentor experience and mental health rating outcome 
+
+## ![Early mentor experience and mental health rating outcome](outputs/figures/week-02/18_early_mentor-mental_health.png)
 
 ## Teen mentor experience and mental health rating outcome
 
--   ![Teen mentor experience and mental health rating outcome](outputs/19_teen_mentor-mental_health.png) Similar trend compared to those who had early mentor experience.
+![Teen mentor experience and mental health rating outcome](outputs/figures/week-02/19_teen_mentor-mental_health.png)
+
+-    Similar trend compared to those who had early mentor experience.
+
+<!-- -->
 
 -   We can also tap into whether those individuals who had EME also tend to continue their mentorship into TME.
