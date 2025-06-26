@@ -1,0 +1,60 @@
+---
+title: KNN Imputation 
+subtitle: (with faiss package)
+date: 2025-06-19
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+```{r}
+# | output: false
+library(reticulate)
+library(readr)
+library(tidyr)
+use_condaenv(condaenv = 'dssg_env') 
+```
+
+> **Note**: `use_condaenv(condaenv = 'dssg_env')` should be run once. Error in console can be resolved by restarting the R session can re-run the above first code cell.
+
+## KNN Imputation
+
+Workflow for imputation is executable through running the script stored in:
+
+```         
+scripts/week-06-knn-faiss-impute.py
+```
+
+There are two ways to execute this script:
+
+1.  Directly render the script in Terminal application using the following bash command (assuming python is installed in your system):
+
+    ```         
+    python scripts/week-06-knn-faiss-impute.py
+    ```
+
+2.  Run all the code cells this quarto note book:
+
+-   [**Note 1**]{.underline}: Rendering this notebook will **not** automatically render the following code block. To produce the imputed dataset, the following code needs to be manually run since the data offered by Mentor Canada is not hosted on the current Github repo.
+-   [**Note 2**]{.underline}: Please ensure that in your terminal, `dssg_env` conda environment is [**NOT**]{.underline} activated when running this report. An already activated `dssg_env` will conflict with the `dssg_env` in this report.
+
+```{r}
+#| eval: false
+#| output: false
+py_run_file("scripts/week-06-knn-faiss-impute.py")
+```
+
+Resultant train and test data frames will be stored in a folder structure of `../../dssg-2025-mentor-canada/Data/` relative to your local `summer2025-dssg_mentor_canada` git repository.
+
+-   Example dataset output:
+
+<div>
+
+> ```         
+> '../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather'
+> ```
+
+</div>

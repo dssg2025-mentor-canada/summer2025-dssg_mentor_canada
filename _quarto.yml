@@ -20,6 +20,7 @@ book:
         - week3-ses-viz.qmd
     - part: "Week 4" 
       chapters: 
-        - week4-ohe-clearning-xgb.qmd
+        - week4-01-ohe-cleaning-xgb.qmd
+    
     - references.qmd
   
