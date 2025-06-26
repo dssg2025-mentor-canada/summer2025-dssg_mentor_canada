@@ -38,8 +38,6 @@ youth_orig <- read_csv("../../dssg-2025-mentor-canada/Data/encodedselectall.csv"
 head(youth_orig)
 ```
 
-### Exclude covariates (outcome variables) as independent variables (`youth_iv`).
-
 **Outcome variables (11 expected in total)**:
 
 +-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -180,10 +178,16 @@ head(na_count_70_percent)
 #### Identify highly sparse column (number of entries \< 30):
 
 ```{r}
+#| output: false
 cols_less_than_30_entires <- na_count_table |>
                              filter(non_na_entries < 30)
 print(cols_less_than_30_entires, n = nrow(cols_less_than_30_entires))
 cols_less_than_30_entires$columns
+
+cols_less_than_90_percent <- na_count_table |>
+                             filter(na_percent >= 90)
+print(cols_less_than_90_percent, n = nrow(cols_less_than_90_percent))
+cols_less_than_90_percent$columns
 ```
 
 ------------------------------------------------------------------------
@@ -226,10 +230,9 @@ select(-any_of(c("QS2_26_INITIATIONEV"))) |>
 select(-any_of(c("QS2_27_MENTORPROGRA1")))
 
 
-
 ```
 
-#### Remove `Prefer not to answer` / `Don't know` responses for following ordinal items
+#### Remove `Prefer not to answer` / `Don't know` responses in the following ordinal items:
 
 -   `QS4_9_MENTALHEALTH`
 
@@ -297,71 +300,6 @@ head(pns_counts)
 >
 > -   Given the number of `unsure` responses in these variables are small relative to the number of total observation (\~2,900), these their corresponding observation would be remove. The resultant dimension of the train \*\*\*\*\* data will be examined.
 
-```{r}
-
-# ** All these unsure columns are categorical--they will be removed later--now we comment this part out:
-
-# # remove responses with 'Unsure' entries (non-nominal columns)
-# col_with_unsure <- c("QS1_2_PROV", "QS2_16_FORMAT_1", "QS1_4_INDIGENOUS", "QS2_16_FORMAT_2",
-#                       "QS1_12_DISABIL", "QS2_16_FORMAT_3", "QS1_13_DISABIL", "QS2_24_MENTORAGE",
-#                       "QS1_22_HIGHESTEDU", "QS2_28_MATCHCHOICE", "QS2_1_MEANINGFULP",
-#                       "QS2_3_PRESENCEOFM", "QS4_17_SERVEDASM", "QS2_8_UNMETNEED61", "QS4_18_CURRENTOR",
-#                       "QS2_9_PRESENCEOFA",  "QS2_12_UNMETNEED1", "QS4_25_FUTUREMEN", 
-#                       "QS2_2_MEANINGFULP", "QS2_4_MENTOR61FOR")
-# df_unsure <- youth |>
-# filter_at(vars(all_of(col_with_unsure)), all_vars(!(. %in% "Unsure")))
-
-
-# nrow(df_unsure) # 981 rows, removing a bit more than half of the data set:(
-# ncol(df_unsure)
-```
-
-```{r}
-# remove responses with 'Prefer not to say' entries (non-nominal columns)
-# cols_with_pns <- c("QS1_2_PROV", "QS1_4_INDIGENOUS", "QS1_11_SEXUALO", "QS1_12_DISABIL", "QS1_13_DISABIL", "QS2_1_MEANINGFULP", "QS2_2_MEANINGFULP", "QS2_3_PRESENCEOFM", "QS2_4_MENTOR61FOR", "QS2_8_UNMETNEED61", "QS2_9_PRESENCEOFA", "QS2_12_UNMETNEED1", "QS2_16_FORMAT_1", "QS2_24_MENTORAGE", "QS2_28_MATCHCHOICE")
-
-# df_unsure <- df_unsure |>
-# filter_at(vars(all_of(cols_with_pns)), all_vars(!(. %in% "Prefer not to say")))
-# nrow(df_unsure) # 922 rows
-# ncol(df_unsure)
-```
-
-### Remove categorical columns in numeric encoding with levels corresponding to `Unsure` or `Prefer not to say`
-
-`Unsure` or `Prefer not to say` are sometimes encoded as `Unsure = 4` or `Prefer not to say = 5`.
-
-```{r}
-
-## **** Come back and remove these categorical columns after ohe!
-
-# cat_cols_pns_3ormore <- c(#"QS1_5_INDIGENOUSHS", "QS1_17_INCARE", "QS1_27_PLANNINGRE", "QS2_5_MENTOR611PR", 
-#                           "QS2_7_MENTOR611SE", "QS2_11_MENTOR1218",  
-#                           #'QS2_22_GEOLOCATI1', 'QS2_22_GEOLOCATI2', 'QS2_22_GEOLOCATI3',
-#                           'QS3_4_LIFEEVENTS1_1_1', 'QS3_4_LIFEEVENTS1_2_2', 'QS3_4_LIFEEVENTS1_3_3', 'QS3_4_LIFEEVENTS1_4_4', 'QS3_4_LIFEEVENTS1_5_5',  'QS3_4_LIFEEVENTS1_6_6', 'QS3_4_LIFEEVENTS1_7_7', 'QS3_4_LIFEEVENTS1_8_8', 'QS3_4_LIFEEVENTS1_9_9', 'QS3_4_LIFEEVENTS1_10_10', 'QS3_4_LIFEEVENTS1_11_11', 'QS3_4_LIFEEVENTS1_12_12', 'QS3_4_LIFEEVENTS1_13_13', 'QS3_4_LIFEEVENTS1_14_14', 'QS3_4_LIFEEVENTS1_15_15', 'QS3_4_LIFEEVENTS1_16_16', 'QS3_4_LIFEEVENTS1_17_17', 'QS3_4_LIFEEVENTS1_18_18', 'QS3_4_LIFEEVENTS1_19_19', 'QS3_4_LIFEEVENTS1_20_20',  'QS4_6_DISAPPOINTED', 'QS4_13_LIFEEVE1_1_1', 'QS4_13_LIFEEVE1_2_2', 'QS4_13_LIFEEVE1_3_3',  'QS4_13_LIFEEVE1_4_4', 'QS4_13_LIFEEVE1_5_5', 'QS4_13_LIFEEVE1_6_6',  'QS4_16_FORMALVOL',  'QS4_14_FORMALVOL')
-                  
-# cat_cols_pns_4 <- c('QS4_1_MEANINGFULPERSON', # >=4 is unsure
-# 'QS4_4_EDUCATIONALEXPEC', # 11 is unsure
-# "QS4_21_MENTORING", "QS4_22_PASTMENTO"  # >=4 is unsure
-
-#   #"QS4_26_INTERNETC", "QS4_27_INTERNETC1_1_1", "QS4_27_INTERNETC1_2_2", "QS4_27_INTERNETC1_3_3", "QS4_27_INTERNETC1_4_4", "QS4_30_INTERNETCON", "QS4_31_MOBILECONN", "QS4_32_MOBILECONNE1_2_2", "QS4_32_MOBILECONNE1_3_3", "QS4_32_MOBILECONNE1_4_4", "QS4_33_MOBILECONNECT") # these are internet access questions
- 
-```
-
-```{r}
-# df_unsure <- df_unsure |>
-#  select(-c("QS1_5_INDIGENOUSHS", "QS1_17_INCARE", "QS1_27_PLANNINGRE", "QS2_5_MENTOR611PR", # program name
-# 'QS2_22_GEOLOCATI1', 'QS2_22_GEOLOCATI2', 'QS2_22_GEOLOCATI3'))
-# # df_unsure <- df_unsure |>
-# # filter_at(vars(all_of(cat_cols_pns_3ormore)),  all_vars(!(.>= 3)))
-# nrow(df_unsure) # 922 rows
-```
-
-```{r}
-# youth <- df_unsure 
-```
-
-> [**Important note for downstream analysis \*\*\*\*\***]{.underline}: Uncomment the above code block `youth <- df_unsure` if you want to use the unfiltered original data.
-
 ------------------------------------------------------------------------
 
 ## Identify continuous metrics columns:
@@ -382,15 +320,15 @@ head(pns_counts)
 
 -   Employment wage / salary:
 
-    -   QS1_29_EMPLOYMENT
+    -   QS1_29_EMPLOYMENT (removed)
 
-    -   QS1_30_EMPLOYMENT1
+    -   QS1_30_EMPLOYMENT1 (removed)
 
-    -   QS1_30_EMPLOYMENT2
+    -   QS1_30_EMPLOYMENT2 (removed)
 
-    -   QS1_31_EMPLOYMENT
+    -   QS1_31_EMPLOYMENT (removed)
 
-    -   QS1_32_WEEKLY
+    -   QS1_32_WEEKLY (removed)
 
     -   Month_income
 
@@ -931,7 +869,7 @@ ohe_unimputed_train <- ohe_unimputed_train |>
   select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
 ```
 
-#### Remove `*_No`:
+#### Remove `*_No` and `No` responses encoded as `*_X2`
 
 ```{r}
 mean_mode_imputed_train |> 
@@ -944,6 +882,7 @@ ncol()
 ohe_unimputed_train |> 
 select((ends_with(c("_No")))) |>
 ncol() 
+  #****
 ```
 
 > Both imputed and unimputed OHE'd train datasets output 38, meaning there are 38 columns of "\*\_No".
@@ -962,8 +901,8 @@ ohe_unimputed_train <- ohe_unimputed_train |>
 > #### `_PreferNotToSay`: For convenience, we sometimes use 'pnts' short for Prefer Not to Say.
 
 ```{r}
-# >=3 is unsure/pnts:
-cat_unsure_pnts_3_or_more <- c("QS1_5_INDIGENOUS", "QS1_5_INDIGENOUSHS", "QS1_17_INCARE", "QS1_27_PLANNINGRE", 
+# >=2 is no/unsure/pnts:
+cat_unsure_pnts_2_or_more <- c("QS1_5_INDIGENOUSHS", "QS1_17_INCARE", "QS1_27_PLANNINGRE", 
                                "QS2_5_MENTOR611PR", "QS2_7_MENTOR611SE", "QS2_11_MENTOR1218",
                                'QS2_22_GEOLOCATI1', 'QS2_22_GEOLOCATI2', 'QS2_22_GEOLOCATI3', 
                                'QS3_4_LIFEEVENTS1_1_1', 'QS3_4_LIFEEVENTS1_2_2', 'QS3_4_LIFEEVENTS1_3_3', 
@@ -975,24 +914,31 @@ cat_unsure_pnts_3_or_more <- c("QS1_5_INDIGENOUS", "QS1_5_INDIGENOUSHS", "QS1_17
                                'QS3_4_LIFEEVENTS1_19_19', 'QS3_4_LIFEEVENTS1_20_20',  'QS4_6_DISAPPOINTED', 
                                'QS4_13_LIFEEVE1_1_1', 'QS4_13_LIFEEVE1_2_2', 'QS4_13_LIFEEVE1_3_3',
                                'QS4_13_LIFEEVE1_4_4', 'QS4_13_LIFEEVE1_5_5', 'QS4_13_LIFEEVE1_6_6', 
-                               'QS4_16_FORMALVOL')
-                  
-cat_unsure_pnts_4 <- c("QS4_1_MEANINGFULPERSON",
+                               'QS4_16_FORMALVOL', 'QS4_26_INTERNETC', 
+                               'QS4_28_INTERNETCON', 'QS4_31_MOBILECONNE', 'QS4_33_MOBILECONNECT')
+  
+
+cat_unsure_pnts_3 <- c("QS4_1_MEANINGFULPERSON",
                        "QS4_21_MENTORING",
-                       "QS4_22_PASTMENTO", 
+                      "QS4_29_PRIVATECONN"
+                    )  # >=3 is no/unsure/pnts
+
+cat_unsure_pnts_4 <- c("QS4_22_PASTMENTO",
                        "QS2_17_TYPE_1", 
                        "QS2_17_TYPE_2",
-                       "QS2_17_TYPE_3", 
-                      "QS4_29_PRIVATECONN",
-                      "QS4_30_INTERNETCON_X4", 
-                      "QS2_18_LOCATION_1",
-                      "QS2_18_LOCATION_2", 
-                      "QS2_18_LOCATION_3",
-                      "QS4_30_INTERNETCON")  # >=4 is unsure/pnts
+                       "QS2_17_TYPE_3",
+                       "QS2_18_LOCATION_1",
+                       "QS2_18_LOCATION_2", 
+                       "QS2_18_LOCATION_3",
+                      "QS4_30_INTERNETCON")   # >=4 is unsure/pnts
+
+
 cat_unsure_pnts_11 <- c("QS4_4_EDUCATIONALEXPEC")  # >=X11 is unsure/pnts
 
-# Below are internet access questions:
-cat_internet_access <- c("QS4_26_INTERNETC", "QS4_27_INTERNETC1_1_1", "QS4_27_INTERNETC1_2_2", "QS4_27_INTERNETC1_3_3", "QS4_27_INTERNETC1_4_4", "QS4_28_INTERNETCON", "QS4_29_PRIVATECONN",  "QS4_31_MOBILECONNE", "QS4_32_MOBILECONNE1_1_1", "QS4_32_MOBILECONNE1_2_2", "QS4_32_MOBILECONNE1_3_3", "QS4_32_MOBILECONNE1_4_4", "QS4_33_MOBILECONNECT")
+cat_X0_no <- c("QS4_27_INTERNETC1_1_1", "QS4_27_INTERNETC1_2_2", "QS4_27_INTERNETC1_3_3", "QS4_27_INTERNETC1_4_4", "QS4_32_MOBILECONNE1_1_1", "QS4_32_MOBILECONNE1_2_2", "QS4_32_MOBILECONNE1_3_3", "QS4_32_MOBILECONNE1_4_4")
+
+
+# *** also need to remove QS4_30_INTERNETCON_X2 independently
 
 ```
 
@@ -1007,23 +953,81 @@ cat_internet_access <- c("QS4_26_INTERNETC", "QS4_27_INTERNETC1_1_1", "QS4_27_IN
 ```{r}
 # Removal of cat_unsure_pnts_3_or_more
 
-mean_mode_imputed_train <- mean_mode_imputed_train %>% 
-  select(-matches(paste0("(", paste(cat_unsure_pnts_3_or_more, collapse = "|"), ")_(X3|X4)$|",
-                         "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$", 
-                         "(", paste(cat_internet_access, collapse = "|"), ")_(X3|X4)$")))
-
-ohe_unimputed_train <- ohe_unimputed_train %>% 
+mean_mode_imputed_train <- mean_mode_imputed_train |>
   select(-matches(paste0(
-    "(", paste(cat_unsure_pnts_3_or_more, collapse = "|"), ")_(X3|X4)$|",
+    "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
+    "(", paste(cat_unsure_pnts_3, collapse = "|"), ")_(X3|X4|X5)$|",
     "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$|",
-    "(", paste(cat_internet_access, collapse = "|"), ")_(X3|X4)$"
+    "(", paste(cat_X0_no, collapse = "|"), ")_(X0)$|",
+    "QS4_30_INTERNETCON_X2"
+  )))
+
+mean_mode_imputed_train <- mean_mode_imputed_train |> 
+  select(-(ends_with(c("X_11")))) # cat_unsure_pnts_11
+
+
+# Verify removal:
+remaining_cols <- colnames(mean_mode_imputed_train)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(mean_mode_imputed_train))]
+
+if (length(remaining_cols) > 0) {
+  message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
+  print(remaining_cols)
+} else {
+  message("All specified _X0, _X2, _X3, _X4, _X5, _X11, and _X_11 columns were successfully removed.") # correct!~
+}
+
+```
+
+```{r}
+ohe_unimputed_train <- ohe_unimputed_train |> 
+  select(-matches(paste0(
+    "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
+    "(", paste(cat_unsure_pnts_3, collapse = "|"), ")_(X3|X4|X5)$|",
+    "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$|",
+    "(", paste(cat_X0_no, collapse = "|"), ")_(X0)$|",
+    "QS4_30_INTERNETCON_X2"
   )))
 
 ohe_unimputed_train <- ohe_unimputed_train |> 
   select(-(ends_with(c("X_11")))) # cat_unsure_pnts_11
 
-remaining_cols <- colnames(ohe_unimputed_train)[grepl("_X3$|_X4$", colnames(ohe_unimputed_train))]
-print(remaining_cols) # correct!
+
+# Verify removal:
+remaining_cols <- colnames(ohe_unimputed_train)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(ohe_unimputed_train))]
+
+if (length(remaining_cols) > 0) {
+  message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
+  print(remaining_cols)
+} else {
+  message("All specified _X0, _X2, _X3, _X4, _X5, _X11, and _X_11 columns were successfully removed.") # correct!~
+}
+```
+
+### Remove Possible Dependent Variables of Interest
+
+-   **Data leakage** is the idea of inadvertently disclosing (or leaking) information about the dependent outcome variables (or the testing data set) to predictor variables in the training set. If we allow the outcome variables to exert antecedent influences on their predictors, and subsequently use the very same predictors to predict those outcome variables, we would end up in a circular reasoning fallacy, and this can lead to falsely inflated relationship between predictors and outcomes.
+
+-   To avoid data leakage, we need to carefully remove all possible dependent variables we might use as outcomes, especially BEFORE we perform KNN imputation.
+
+    -   KNN imputation assess the relationship between variables to approximate missing values. If dependent variables (DVs) are included, imputed values for the independent variables (IVs) will be influenced by the DVs, leading to biased relationship between the IV and the DV.
+
+-   Decision: We will passthrough the possible DVs during the KNN imputation pipeline in python.
+
+```{r}
+#| output: false
+ohe_unimputed_train |>
+select(starts_with(c('QS1_19_HIGHSCHOOL', 'QS4_19_CURRENTME', 'QS4_18_CURRENTOR', 
+                            'QS1_20_HIGHSCHOOL', 'QS1_21_FURTHEDUCA', 'QS1_22_HIGHESTEDU', 
+                            'QS1_23_YEARCOMPLE', 'QS1_25_EMPLOYMENT', 'QS1_26_EMPLOYMENT',
+                            'QS1_27_PLANNINGRE',  'QS1_28_EMPLOYMENT', 'QS4_4_EDUCATIONALEXPEC', 
+                            'QS4_5_SATEDU','QS4_6_DISAPPOINTED', # these are self-motivation variable.
+                            'QS4_7_SOCIALCAPITAL', 'QS4_8_HELPSEEKING', 'QS4_9_MENTALHEALTH',
+                            'QS4_10_MENTALWELLBE', 'QS4_11_BELONGING', 'QS4_12_TRUST',
+                            'QS4_16_FORMALVOL', 'QS4_25_FUTUREMEN', 'QS4_21_MENTORING',
+                            'QS4_17_SERVEDASM', 'QS4_18_CURRENTOR', 'QS4_22_PASTMENTO', 
+                            'QS4_1_MEANINGFULPERSON', 'QS4_13_LIFEEVE'))) |>
+summarize(across(everything(), ~sum(is.na(.)))) |>
+glimpse()
 ```
 
 # Data frame export:
