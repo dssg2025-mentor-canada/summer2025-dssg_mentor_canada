@@ -801,7 +801,7 @@ mean_mode_impute_prep <- preprocessing_recipe |>
                          prep()
 
 mean_mode_imputed_train <- bake(mean_mode_impute_prep, new_data = NULL)
-mean_mode_impute_test   <- bake(mean_mode_impute_prep, new_data = test_data)
+mean_mode_imputed_test   <- bake(mean_mode_impute_prep, new_data = test_data)
 ```
 
 ### Only one-hot encode the nominal columns [without]{.underline} imputation:
@@ -861,15 +861,25 @@ ncol()
 > Both imputed and unimputed OHE'd train datasets output 24, meaning there are 24 columns of "\*\_PreferNotToSay", "\_Unsure", "\_Other".
 
 ```{r}
-# Removals:
+# Removals (train):
 mean_mode_imputed_train <- mean_mode_imputed_train |> 
   select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
 
 ohe_unimputed_train <- ohe_unimputed_train |> 
   select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
+
 ```
 
-#### Remove `*_No` and `No` responses encoded as `*_X2`
+```{r}
+# Removals (test):
+mean_mode_imputed_test <- mean_mode_imputed_test |> 
+  select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
+
+ohe_unimputed_test <- ohe_unimputed_test |> 
+  select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
+```
+
+#### Remove `*_No`
 
 ```{r}
 mean_mode_imputed_train |> 
@@ -882,17 +892,26 @@ ncol()
 ohe_unimputed_train |> 
 select((ends_with(c("_No")))) |>
 ncol() 
-  #****
+  
 ```
 
 > Both imputed and unimputed OHE'd train datasets output 38, meaning there are 38 columns of "\*\_No".
 
 ```{r}
-# Removals:
+# Removals (train):
 mean_mode_imputed_train <- mean_mode_imputed_train |> 
   select(-(contains(c("_No"))))
 
 ohe_unimputed_train <- ohe_unimputed_train |> 
+  select(-(contains(c("_No"))))
+```
+
+```{r}
+# Removals (test):
+mean_mode_imputed_test <- mean_mode_imputed_test |> 
+  select(-(contains(c("_No"))))
+
+ohe_unimputed_test <- ohe_unimputed_test |> 
   select(-(contains(c("_No"))))
 ```
 
@@ -951,7 +970,7 @@ cat_X0_no <- c("QS4_27_INTERNETC1_1_1", "QS4_27_INTERNETC1_2_2", "QS4_27_INTERNE
 > -   Internet access variables listed in `cat_internet_access` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 3` and `Prefer not to say = 4`.
 
 ```{r}
-# Removal of cat_unsure_pnts_3_or_more
+# Removal of cat_unsure_pnts_3_or_more (train)
 
 mean_mode_imputed_train <- mean_mode_imputed_train |>
   select(-matches(paste0(
@@ -979,6 +998,8 @@ if (length(remaining_cols) > 0) {
 ```
 
 ```{r}
+# Removal of ohe_unimputed_train (train)
+
 ohe_unimputed_train <- ohe_unimputed_train |> 
   select(-matches(paste0(
     "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
@@ -994,6 +1015,61 @@ ohe_unimputed_train <- ohe_unimputed_train |>
 
 # Verify removal:
 remaining_cols <- colnames(ohe_unimputed_train)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(ohe_unimputed_train))]
+
+if (length(remaining_cols) > 0) {
+  message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
+  print(remaining_cols)
+} else {
+  message("All specified _X0, _X2, _X3, _X4, _X5, _X11, and _X_11 columns were successfully removed.") # correct!~
+}
+```
+
+```{r}
+# Removal of cat_unsure_pnts_3_or_more (test)
+
+mean_mode_imputed_test <- mean_mode_imputed_test |>
+  select(-matches(paste0(
+    "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
+    "(", paste(cat_unsure_pnts_3, collapse = "|"), ")_(X3|X4|X5)$|",
+    "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$|",
+    "(", paste(cat_X0_no, collapse = "|"), ")_(X0)$|",
+    "QS4_30_INTERNETCON_X2"
+  )))
+
+mean_mode_imputed_test <- mean_mode_imputed_test |> 
+  select(-(ends_with(c("X_11")))) # cat_unsure_pnts_11
+
+
+# Verify removal:
+remaining_cols <- colnames(mean_mode_imputed_test)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(mean_mode_imputed_test))]
+
+if (length(remaining_cols) > 0) {
+  message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
+  print(remaining_cols)
+} else {
+  message("All specified _X0, _X2, _X3, _X4, _X5, _X11, and _X_11 columns were successfully removed.") # correct!~
+}
+```
+
+```{r}
+{r}
+# Removal of ohe_unimputed_train (test)
+
+ohe_unimputed_test <- ohe_unimputed_test |> 
+  select(-matches(paste0(
+    "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
+    "(", paste(cat_unsure_pnts_3, collapse = "|"), ")_(X3|X4|X5)$|",
+    "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$|",
+    "(", paste(cat_X0_no, collapse = "|"), ")_(X0)$|",
+    "QS4_30_INTERNETCON_X2"
+  )))
+
+ohe_unimputed_test <- ohe_unimputed_test |> 
+  select(-(ends_with(c("X_11")))) # cat_unsure_pnts_11
+
+
+# Verify removal:
+remaining_cols <- colnames(ohe_unimputed_test)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(ohe_unimputed_test))]
 
 if (length(remaining_cols) > 0) {
   message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
@@ -1065,6 +1141,6 @@ write_feather(mean_mode_imputed_train, "../../dssg-2025-mentor-canada/Data/mean_
 write_feather(ohe_unimputed_train, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather") 
 
 write_feather(test_data, "../../dssg-2025-mentor-canada/Data/umimputed_test.feather")
-write_feather(mean_mode_impute_test, "../../dssg-2025-mentor-canada/Data/mean_mode_imputed_test.feather")
+write_feather(mean_mode_imputed_test, "../../dssg-2025-mentor-canada/Data/mean_mode_imputed_test.feather")
 write_feather(ohe_unimputed_test, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_test.feather")
 ```
