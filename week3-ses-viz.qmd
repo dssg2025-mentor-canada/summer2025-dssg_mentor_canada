@@ -62,8 +62,8 @@ library(knitr)
 #| label: tbl-ses_teens
 #| tbl-cap: Number of response to SES indicators during respondents' teenage years (age 12-18)
 #| echo: False
-youth_ses_counts <- read_csv("outputs/tables/week-03-count-youth-ses-indicator-responses.csv")
-adult_ses_counts <- read_csv("outputs/tables/week-03-count-adult-ses-indicator-responses.csv")
+youth_ses_counts <- read_csv("outputs/tables/week-03/week-03-count-youth-ses-indicator-responses.csv")
+adult_ses_counts <- read_csv("outputs/tables/week-03/week-03-count-adult-ses-indicator-responses.csv")
 
 kable(youth_ses_counts)
 ```

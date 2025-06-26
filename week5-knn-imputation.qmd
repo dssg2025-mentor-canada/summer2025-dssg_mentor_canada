@@ -1,6 +1,6 @@
 ---
 title: KNN Imputation 
-subtitle: (with faiss package)
+subtitle: (with faiss package in Python script)
 date: 2025-06-19
 format: 
     html:
@@ -24,17 +24,13 @@ use_condaenv(condaenv = 'dssg_env')
 
 Workflow for imputation is executable through running the script stored in:
 
-```         
-scripts/week-06-knn-faiss-impute.py
-```
+`scripts/week-06-knn-faiss-impute.py`
 
 There are two ways to execute this script:
 
 1.  Directly render the script in Terminal application using the following bash command (assuming python is installed in your system):
 
-    ```         
-    python scripts/week-06-knn-faiss-impute.py
-    ```
+    `python scripts/week-06-knn-faiss-impute.py`
 
 2.  Run all the code cells this quarto note book:
 
