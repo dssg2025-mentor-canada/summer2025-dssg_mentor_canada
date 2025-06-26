@@ -1,7 +1,7 @@
 ---
 title: KNN Imputation 
 subtitle: (with faiss package in Python script)
-date: 2025-06-19
+date: 2025-06-26
 format: 
     html:
         toc: true
@@ -45,7 +45,7 @@ py_run_file("scripts/week-06-knn-faiss-impute.py")
 
 Resultant train and test data frames will be stored in a folder structure of `../../dssg-2025-mentor-canada/Data/` relative to your local `summer2025-dssg_mentor_canada` git repository.
 
--   Example dataset output:
+-   Example dataset output path:
 
 <div>
 
