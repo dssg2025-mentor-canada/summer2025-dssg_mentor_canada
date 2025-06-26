@@ -419,7 +419,7 @@ For some ordinal columns (numerically encoded ones), there is incongruency in th
 
 -   Question 20g: `QS2_19_EXPERIENCE_*`
 
-    -   Always positive; Mostly positive; Neutral; Mostly negative; [**Always negative**]{.underline}
+    -   **Always positive; Mostly positive; Neutral; Mostly negative; [Always negative]{.underline}**
 
 -   Question 26: `QS2_30_MATCHSIMILAR1_*_*`
 
@@ -439,7 +439,7 @@ For some ordinal columns (numerically encoded ones), there is incongruency in th
 
 -   Question 36: `QS3_1_GLOBALSELFWOR1_2_2`
 
-    -   **(1) Strongly disagree (2) Disagree (3) Agree (4) [Strongly agree]{.underline}**
+    -   \(1\) Strongly disagree (2) Disagree (3) Agree (4) [Strongly agree]{.underline}
 
 -   Question 39: `QS3_5_SCHOOLCLIMATE1_*_*`
 
