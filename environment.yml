@@ -18,4 +18,6 @@ dependencies:
   - chromadb # vector storage
   - pypdf # loading PDFs
   - pytest # unit tests
+  - logging
+  - faiss
 
