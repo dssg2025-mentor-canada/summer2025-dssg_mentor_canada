@@ -1052,7 +1052,6 @@ if (length(remaining_cols) > 0) {
 ```
 
 ```{r}
-{r}
 # Removal of ohe_unimputed_train (test)
 
 ohe_unimputed_test <- ohe_unimputed_test |> 

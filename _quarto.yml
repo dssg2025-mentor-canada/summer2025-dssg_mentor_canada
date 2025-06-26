@@ -21,6 +21,9 @@ book:
     - part: "Week 4" 
       chapters: 
         - week4-01-ohe-cleaning-xgb.qmd
+    - part: "Week 5"
+      chapters:
+        - week5-knn-imputation.qmd
     
     - references.qmd
   
