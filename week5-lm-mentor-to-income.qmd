@@ -1,0 +1,401 @@
+---
+title: Linear Regression 
+subtitle: Using mentor status and demographic controls to predict adult income 
+date: 2025-06-19
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+## Libraries and Data Import
+
+```{r}
+# | output: false
+library(reticulate)
+library(readr)
+library(tidyr)
+library(knitr)
+library(arrow)
+library(tidymodels)
+  set.seed(512)
+```
+
+```{r}
+ohe_unimputed_train <- read_feather('../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather')
+mean_mode_imputed_train <- read_feather("../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.feather")
+
+# knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_dataset.csv')
+knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_dataset.csv') # K = 60
+```
+
+## Create new variable: `mentor_6to18`
+
+### Mean Mode Imputed:
+
+This new variable `mentor_6to18` captures respondents who reported mentor experience anywhere from age 6 to 18.
+
+```{r}
+mean_mode_imputed_train <- mean_mode_imputed_train |>
+                           mutate(mentor_6to18 = ifelse(QS2_3_PRESENCEOFM_Yes == 1 | QS2_9_PRESENCEOFA_Yes == 1, 1, 0))
+```
+
+## Linear Regression:
+
+```{r}
+lm_at_least_1_mentor <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                            mentor_6to18 +
+                            QS2_6_MENTOREXPER + 
+                            QS1_1_AGE + 
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_11_11_X1 + 
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_16_16_X1 + 
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_18_18_X1,
+                            data = mean_mode_imputed_train)
+summary(lm_at_least_1_mentor)
+```
+
+### KNN Imputed:
+
+```{r}
+knn_imputed_train <- knn_imputed_train |>
+                      mutate(mentor_6to18 = ifelse(QS2_3_PRESENCEOFM_Yes == 1 | QS2_9_PRESENCEOFA_Yes == 1, 1, 0))
+```
+
+## Linear Regression: 
+
+```{r}
+lm_at_least_1_mentor <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                            mentor_6to18 +
+                            QS2_6_MENTOREXPER + 
+                            QS1_1_AGE + 
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_11_11_X1 + 
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_16_16_X1 + 
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_18_18_X1,
+                            data = knn_imputed_train)
+summary(lm_at_least_1_mentor)
+
+lm_at_separate_mentor <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                            QS2_3_PRESENCEOFM_Yes +
+                            QS2_9_PRESENCEOFA_Yes +
+                            QS2_6_MENTOREXPER + 
+                            QS1_1_AGE,
+                            data = knn_imputed_train)
+summary(lm_at_separate_mentor)
+```
+
+## LASSO: Feature Selection
+
+```{r}
+# Define LASSO model
+recipe_mini <- recipe(QS1_28_EMPLOYMENT_calculated ~ ., data = mean_mode_imputed_train) |>
+  step_rm(starts_with("QS4_14_FORMALVOL_"))
+
+lasso_spec <- linear_reg(penalty = tune(), mixture = 1) %>%  # mixture = 1 for LASSO
+              set_engine("glmnet")
+
+lasso_wkfl <- workflow() |>
+  add_recipe(recipe_mini) |>
+  add_model(lasso_spec)
+
+# Tune penalty
+cv_folds <- vfold_cv(mean_mode_imputed_train, v = 5)
+lasso_grid <- grid_regular(penalty(), levels = 10)
+lasso_tune <- tune_grid(lasso_wkfl,
+                        resamples = cv_folds,
+                        grid = lasso_grid,
+                        metrics = metric_set(rmse, rsq))
+
+# Select best model
+best_lasso <- select_best(lasso_tune, metric = "rmse")
+lasso_final <- finalize_workflow(lasso_wkfl, best_lasso)
+
+# Fit final model
+lasso_fit <- fit(lasso_final, data = mean_mode_imputed_train)
+summary(lasso_fit)
+coef(lasso_fit)
+
+# Extract coefficients
+lasso_coefs <- tidy(lasso_fit) %>%
+  filter(term != "(Intercept)" & estimate != 0) %>%
+  arrange(desc(abs(estimate)))
+
+# View top 10 important features
+lasso_coefs %>% slice_head(n = 10)
+```
+
+```{r}
+
+recipe_2 <- recipe(QS1_28_EMPLOYMENT_calculated ~ QS3_4_LIFEEVENTS1_11_11_X1 + 
+            QS3_4_LIFEEVENTS1_16_16_X1 + 
+            QS3_4_LIFEEVENTS1_18_18_X1 + 
+              mentor_6to18 +
+            QS2_6_MENTOREXPER + 
+            QS1_1_AGE + 
+            QS1_23_YEARCOMPLE, data = mean_mode_imputed_train) |> 
+  step_log(QS1_28_EMPLOYMENT_calculated, base = 10) |>
+  step_interact(~ mentor_6to18:QS3_4_LIFEEVENTS1_11_11_X1 +
+                  mentor_6to18:QS3_4_LIFEEVENTS1_16_16_X1 +
+                  mentor_6to18:QS3_4_LIFEEVENTS1_18_18_X1 +
+                  QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_11_11_X1 +
+                  QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_16_16_X1 +
+                  QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_18_18_X1)
+
+lasso_spec <- linear_reg(penalty = tune(), mixture = 0) %>%  # mixture = 1 for LASSO, 0 for Ridge
+              set_engine("glmnet")
+
+lasso_wkfl <- workflow() |>
+  add_recipe(recipe_2) |>
+  add_model(lasso_spec)
+
+# Tune penalty
+cv_folds <- vfold_cv(mean_mode_imputed_train, v = 5)
+lasso_grid <- grid_regular(penalty(), levels = 10)
+lasso_tune <- tune_grid(lasso_wkfl,
+                        resamples = cv_folds,
+                        grid = lasso_grid,
+                        metrics = metric_set(rmse, rsq))
+
+# Select best model
+best_lasso <- select_best(lasso_tune, metric = "rmse")
+lasso_final <- finalize_workflow(lasso_wkfl, best_lasso)
+
+# Fit final model
+lasso_fit <- fit(lasso_final, data = mean_mode_imputed_train)
+summary(lasso_fit)
+coef(lasso_fit)
+
+# Extract coefficients
+lasso_coefs <- tidy(lasso_fit) |>
+  filter(term != "(Intercept)" & estimate != 0) |>
+  arrange(desc(abs(estimate)))
+
+# View top 10 important features
+lasso_coefs |>
+slice_head(n = 10)
+
+```
+
+> 1.  (Mentor × Welfare) Interpretation: For respondents who received welfare in youth, having a mentor reduces income by \~26.5% compared to those without a mentor (after accounting for the main effects of mentor_6to18 and QS3_4_LIFEEVENTS1_11_11_X1). This suggests mentors may not mitigate the negative income effects of welfare dependence.
+>
+> -   <div>
+>
+>     > $10^{-0.134}$, which is around 0.735. This translates to: income is \~26.5% lower (1 - 0.735) for respondents who received welfare in youth & those who had a mentor compared to those without a mentor.
+>
+>     </div>
+>
+> 2.  (Mentor × Youth Work) Interpretation: For respondents who worked in youth, having a mentor increases income by \~26.7% compared to those without a mentor.
+>
+> 3.  (Age): Each additional year of age (19–30 range) increases income by \~26.2%, holding other variables constant.
+>
+> 4.  (Food Bank Use) Interpretation: Respondents who used a food bank in youth have \~20.6% lower income than those who didn’t, reflecting socioeconomic challenges persisting into adulthood.
+
+```{r}
+model <- lm(QS1_28_EMPLOYMENT_calculated ~ 
+                    Focus1_EducationSupport	+
+                    `Focus1_Spirutal-Religous-CulturalSupport` + 
+                    `Focus1_Emotional-SocialSupport` +
+                      QS2_6_MENTOREXPER + 
+                      QS1_1_AGE + 
+                      QS1_23_YEARCOMPLE,
+            data = mean_mode_imputed_train)
+
+(summary(model))
+recipe_2 <- recipe(QS1_28_EMPLOYMENT_calculated ~ 
+                    Focus1_EducationSupport	+
+                    `Focus1_Spirutal-Religous-CulturalSupport` + 
+                    `Focus1_Emotional-SocialSupport` +
+                           
+                      QS2_6_MENTOREXPER + 
+                      QS1_1_AGE + 
+                      QS1_23_YEARCOMPLE, data = mean_mode_imputed_train) |> 
+  step_log(QS1_28_EMPLOYMENT_calculated, base = 10) |>
+  step_interact(~ QS2_6_MENTOREXPER:Focus1_EducationSupport +
+                  QS2_6_MENTOREXPER:`Focus1_Spirutal-Religous-CulturalSupport` +
+                  QS2_6_MENTOREXPER:`Focus1_Emotional-SocialSupport` )
+
+lasso_spec <- linear_reg(penalty = tune(), mixture = 0) %>%  # mixture = 1 for LASSO, 0 for Ridge
+              set_engine("glmnet")
+
+lasso_wkfl <- workflow() |>
+  add_recipe(recipe_2) |>
+  add_model(lasso_spec)
+
+# Tune penalty
+cv_folds <- vfold_cv(mean_mode_imputed_train, v = 5)
+lasso_grid <- grid_regular(penalty(), levels = 10)
+lasso_tune <- tune_grid(lasso_wkfl,
+                        resamples = cv_folds,
+                        grid = lasso_grid,
+                        metrics = metric_set(rmse, rsq))
+
+# Select best model
+best_lasso <- select_best(lasso_tune, metric = "rmse")
+lasso_final <- finalize_workflow(lasso_wkfl, best_lasso)
+
+# Fit final model
+lasso_fit <- fit(lasso_final, data = mean_mode_imputed_train)
+summary(lasso_fit)
+coef(lasso_fit)
+
+# Extract coefficients
+lasso_coefs <- tidy(lasso_fit) %>%
+  filter(term != "(Intercept)" & estimate != 0) %>%
+  arrange(desc(abs(estimate)))
+
+# View top 10 important features
+lasso_coefs %>% slice_head(n = 10)
+```
+
+## LASSO with KNN-imputed
+
+```{r}
+# Define LASSO model
+recipe_mini <- recipe(QS1_28_EMPLOYMENT_calculated ~ ., data = knn_imputed_train) |>
+  step_log(QS1_28_EMPLOYMENT_calculated, base = 10) |>
+
+  step_rm(starts_with("QS4_14_FORMALVOL_"))
+
+lasso_spec <- linear_reg(penalty = tune(), mixture = 1) %>% 
+              set_engine("glmnet")
+
+lasso_wkfl <- workflow() |>
+  add_recipe(recipe_mini) |>
+  add_model(lasso_spec)
+
+# Tune penalty
+cv_folds <- vfold_cv(knn_imputed_train, v = 5)
+lasso_grid <- grid_regular(penalty(), levels = 10)
+lasso_tune <- tune_grid(lasso_wkfl,
+                        resamples = cv_folds,
+                        grid = lasso_grid,
+                        metrics = metric_set(rmse, rsq))
+
+# Select best model
+best_lasso <- select_best(lasso_tune, metric = "rmse")
+lasso_final <- finalize_workflow(lasso_wkfl, best_lasso)
+
+# Fit final model
+lasso_fit <- fit(lasso_final, data = knn_imputed_train)
+summary(lasso_fit)
+coef(lasso_fit)
+
+# Extract coefficients
+lasso_coefs <- tidy(lasso_fit) %>%
+  filter(term != "(Intercept)" & estimate != 0) %>%
+  arrange(desc(abs(estimate)))
+
+# View top 10 important features
+lasso_coefs %>% slice_head(n = 10)
+```
+
+```{r}
+
+recipe_2 <- recipe(QS1_28_EMPLOYMENT_calculated ~ QS3_4_LIFEEVENTS1_11_11_X1 + 
+            QS3_4_LIFEEVENTS1_16_16_X1 + 
+            QS3_4_LIFEEVENTS1_18_18_X1 + QS2_3_PRESENCEOFM_Yes + QS2_9_PRESENCEOFA_Yes +
+            QS2_6_MENTOREXPER + 
+            QS1_1_AGE + 
+            QS1_23_YEARCOMPLE, data = knn_imputed_train)  |> 
+   step_log(QS1_28_EMPLOYMENT_calculated, base = 10) # |>
+  # step_interact(~ QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_11_11_X1 +
+  #                 QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_16_16_X1 +
+  #                 QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_18_18_X1)
+
+lasso_spec <- linear_reg(penalty = tune(), mixture = 1) %>%  # mixture = 1 for LASSO
+              set_engine("glmnet")
+
+lasso_wkfl <- workflow() |>
+  add_recipe(recipe_2) |>
+  add_model(lasso_spec)
+
+# Tune penalty
+cv_folds <- vfold_cv(knn_imputed_train, v = 5)
+lasso_grid <- grid_regular(penalty(), levels = 10)
+lasso_tune <- tune_grid(lasso_wkfl,
+                        resamples = cv_folds,
+                        grid = lasso_grid,
+                        metrics = metric_set(rmse, rsq))
+
+# Select best model
+best_lasso <- select_best(lasso_tune, metric = "rmse")
+lasso_final <- finalize_workflow(lasso_wkfl, best_lasso)
+
+# Fit final model
+lasso_fit <- fit(lasso_final, data = knn_imputed_train)
+summary(lasso_fit)
+coef(lasso_fit)
+
+# Extract coefficients
+lasso_coefs <- tidy(lasso_fit) %>%
+  filter(term != "(Intercept)" & estimate != 0) %>%
+  arrange(desc(abs(estimate)))
+
+# View top 10 important features
+lasso_coefs %>% slice_head(n = 10)
+
+```
+
+```{r}
+model <- lm(QS1_28_EMPLOYMENT_calculated ~ 
+                    Focus1_EducationSupport	+
+                    `Focus1_Spirutal-Religous-CulturalSupport` + 
+                    `Focus1_Emotional-SocialSupport` +
+                      QS2_6_MENTOREXPER + 
+                      QS1_1_AGE + 
+                      QS1_23_YEARCOMPLE,
+            data = knn_imputed_train)
+
+(summary(model))
+recipe_2 <- recipe(QS1_28_EMPLOYMENT_calculated ~ 
+                    Focus1_EducationSupport	+
+                    `Focus1_Spirutal-Religous-CulturalSupport` + 
+                    `Focus1_Emotional-SocialSupport` +
+                           
+                      QS2_6_MENTOREXPER + 
+                      QS1_1_AGE + 
+                      QS1_23_YEARCOMPLE, data = knn_imputed_train) |> 
+  step_log(QS1_28_EMPLOYMENT_calculated, base = 10) |>
+  step_interact(~ QS2_6_MENTOREXPER:Focus1_EducationSupport +
+                  QS2_6_MENTOREXPER:`Focus1_Spirutal-Religous-CulturalSupport` +
+                  QS2_6_MENTOREXPER:`Focus1_Emotional-SocialSupport` )
+
+lasso_spec <- linear_reg(penalty = tune(), mixture = 0) %>%  # mixture = 1 for LASSO, 0 for Ridge
+              set_engine("glmnet")
+
+lasso_wkfl <- workflow() |>
+  add_recipe(recipe_2) |>
+  add_model(lasso_spec)
+
+# Tune penalty
+cv_folds <- vfold_cv(knn_imputed_train, v = 5)
+lasso_grid <- grid_regular(penalty(), levels = 10)
+lasso_tune <- tune_grid(lasso_wkfl,
+                        resamples = cv_folds,
+                        grid = lasso_grid,
+                        metrics = metric_set(rmse, rsq))
+
+# Select best model
+best_lasso <- select_best(lasso_tune, metric = "rmse")
+lasso_final <- finalize_workflow(lasso_wkfl, best_lasso)
+
+# Fit final model
+lasso_fit <- fit(lasso_final, data = knn_imputed_train)
+summary(lasso_fit)
+coef(lasso_fit)
+
+# Extract coefficients
+lasso_coefs <- tidy(lasso_fit) %>%
+  filter(term != "(Intercept)" & estimate != 0) %>%
+  arrange(desc(abs(estimate)))
+
+# View top 10 important features
+lasso_coefs %>% slice_head(n = 10)
+```
