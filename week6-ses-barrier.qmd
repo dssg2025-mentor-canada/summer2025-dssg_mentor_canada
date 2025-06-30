@@ -1,0 +1,235 @@
+---
+title: SES indicators, access barrier to mentorship, and mentor support focus (con't)
+subtitle: Examining relationship between key SES variables and barrier to mentorship
+date: 2025-06-26
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+## Define Outcome Variables of Interest:
+
+```{r}
+#| output: false
+#| warning: false
+library(reticulate)
+library(readr)
+library(tidyr)
+library(knitr)
+library(arrow)
+library(tidymodels)
+library(regclass)
+library(xgboost)
+set.seed(512) # Set seed to ensure code result reproducibility for randomization
+```
+
+# Examine mentor helpfulness rating, support, and access barriers to income
+
+-   In particular, look at Educational focus and career focus mentor
+
+```{r}
+knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_dataset.csv')
+ohe_unimputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.csv')
+
+
+```
+
+# Examine mentor helpfulness rating, mental health support, and access barriers to mental health
+
+### Mental health rating as outcome variable:
+
+```{r}
+knn_imputed_train$QS4_9_MENTALHEALTH
+
+```
+
+```{r}
+#---unimputed
+model <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = ohe_unimputed_train)
+summary(model)
+
+model <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS1_1_AGE , 
+            data = ohe_unimputed_train)
+summary(model)
+#----knn imputed
+model_imputed <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
+
+```
+
+> Coefficients:
+>
+> **QS3_4_LIFEEVENTS1_11_11_X1: 0.04336 (p = 0.61704, not significant)**
+>
+> -   This life event (family received social welfare in youth) has a small positive effect (increases mental health score by 0.043), but it’s not statistically significant (p \> 0.05).
+>
+> **QS3_4_LIFEEVENTS1_16_16_X1: 0.15714 (p = 0.04629, \* significant)**
+>
+> -   This life event increases the mental health score by 0.157 units when present. suggesting that this having worked to support one's family in youth is associated with better mental health.
+>
+>     -   (Likely not significant under adjusted p)
+>
+> **QS3_4_LIFEEVENTS1_18_18_X1: -0.24558 (p = 0.00638, \*\* significant)**
+>
+> -   The negative coefficient suggests that food bank usage in youth is associated with worse mental health.
+>
+> **QS2_3_PRESENCEOFM_Yes: 0.42179 (p = 5.52e-10, \*\*\* significant)**
+>
+> -   The presence of a mentor increases the mental health score by 0.422 units.
+>
+> -   This is a relatively strong positive effect, suggesting mentorship is associated with better mental health. Highly significant (p \< 0.001).
+>
+> **QS2_3_PRESENCEOFM_Yes: 0.42179 (p = 5.52e-10, \*\*\* significant)**
+>
+> -   The presence of a mentor from age 6-11 increases the mental health score by 0.422 units.
+>
+> -   This is a relatively strong positive effect, suggesting mentorship is associated with better mental health.
+>
+> -   Highly significant (p \< 0.001).
+>
+> **QS2_9_PRESENCEOFA_Yes: -0.13359 (p = 0.03984, \* significant)**
+>
+> -   The presence of mentor in youth seem to decrease the mental health score by 0.134 units. The effect is modest but significant at the 0.05 level.
+>
+> **QS2_6_MENTOREXPER: 0.48651 (p = 5.01e-13, \*\*\* significant)**
+>
+> -   A one-unit increase in mentor experience (e.g., quality or extent of mentorship) increases the mental health score by 0.487 units.
+>
+> -   This is the strongest effect in the model, suggesting mentor experience is a key positive predictor of mental health.
+
+### View `SUPPORTS` columns:
+
+```{r}
+ohe_unimputed_train|>select(starts_with("QS2_34_SUPPORTS"))
+```
+
+```{r}
+#---unimputed
+model <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = ohe_unimputed_train)
+summary(model)
+#----knn imputed
+model_imputed <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
+```
+
+# Further education (binary outcome) x mentor exposure
+
+```{r}
+#----logistic unimputed
+lg_model_unimputed <- glm(QS1_21_FURTHEDUCA_Yes  ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                         QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                         QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                         QS2_3_PRESENCEOFM_Yes + 
+                          QS2_9_PRESENCEOFA_Yes +
+                                         QS1_1_AGE, 
+            data = mean_mode_imputed_train,
+            family = binomial)
+summary(lg_model_unimputed)
+
+#----logistic knn imputed
+lg_model <- glm(QS1_21_FURTHEDUCA_Yes ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                         QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                         QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                         QS2_3_PRESENCEOFM_Yes + 
+                QS2_9_PRESENCEOFA_Yes +
+                                         QS1_1_AGE, 
+            data = knn_imputed_train,
+            family = binomial)
+summary(lg_model)
+```
+
+> **QS3_4_LIFEEVENTS1_11_11_X1: -0.57539 (p = 0.000708, \*\*\* significant)**
+>
+> -   To interpret in terms of odds: e−0.57539≈0.562e−0.57539≈0.562, so the odds of pursuing further education are reduced by about 44% (1 - 0.562) when this life event occurs, holding other variables constant.
+>
+> **QS3_4_LIFEEVENTS1_16_16_X1: 0.43819 (p = 0.012892, \* significant)**
+>
+> -   Odds: e0.43819≈1.550e0.43819≈1.550, so the odds of pursuing further education are increased by about 55% when this life event occurs.
+>
+> **QS3_4_LIFEEVENTS1_18_18_X1: -0.65774 (p = 0.000180, \*\*\* significant)**
+>
+> -   Odds: e−0.65774≈0.518e−0.65774≈0.518, so the odds are reduced by about 48% when this life event occurs.
+>
+> **QS2_3_PRESENCEOFM_Yes: 0.35108 (p = 0.007391, \*\* significant)**
+>
+> -   Odds: e0.35108≈1.420e0.35108≈1.420, so the odds increase by about 42% with a mentor present.
+>
+> **QS1_1_AGE: 0.27348 (p = 9.59e-06, \*\*\* significant)**
+>
+> -   Odds: e0.27348≈1.315e0.27348≈1.315, so each additional year of age increases the odds of pursuing further education by about 31.5%.
+
+# Belong x mentor exposure
+
+```{r}
+#---unimputed
+model <- lm(QS4_11_BELONGING ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS1_1_AGE , 
+            data = ohe_unimputed_train)
+summary(model)
+#----knn imputed
+model_imputed <- lm(QS4_11_BELONGING ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
+
+model_imputed <- lm(QS4_11_BELONGING ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
+
+```
+
+# Which racial group has disparity in mentorship access–and how might that relate to key outcome variables
+
+```{r}
+
+```

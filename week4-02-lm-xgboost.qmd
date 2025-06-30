@@ -29,14 +29,14 @@ set.seed(512) # Set seed to ensure code result reproducibility for randomization
 ## Data Import
 
 ```{r}
-unimputed_train <- read_feather('../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather')
+ohe_unimputed_train <- read_feather('../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather')
+ohe_unimputed_train <- ohe_unimputed_train %>% mutate_all(~as.numeric(as.character(.)))
+
+
 mean_mode_imputed_train <- read_feather("../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.feather")
 
-unimputed_train <- read_feather('../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather')
-mean_mode_imputed_train <- read_feather("../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.feather")
 # knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_dataset.csv')
 knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_dataset.csv')
-
 
 ```
 
@@ -45,23 +45,59 @@ knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_tuned_kn
 ### Linear model - Linear Regression (Ordinary Least Square Reg)
 
 ```{r}
+#| echo: false
+#| output: false
+#| warning: false
+mentor_ses_no_na_unimputed <- ohe_unimputed_train |>
+                            select(QS1_28_EMPLOYMENT_calculated, QS3_4_LIFEEVENTS1_11_11_X1,QS3_4_LIFEEVENTS1_16_16_X1,
+                                   QS3_4_LIFEEVENTS1_18_18_X1,QS2_3_PRESENCEOFM_Yes,QS2_9_PRESENCEOFA_Yes,
+                                   QS2_6_MENTOREXPER, QS1_1_AGE) |>
+                            na.omit()
+subset <- ohe_unimputed_train |>
+select(QS1_28_EMPLOYMENT_calculated, QS3_4_LIFEEVENTS1_11_11_X1,QS3_4_LIFEEVENTS1_16_16_X1,
+                                   QS3_4_LIFEEVENTS1_18_18_X1,QS2_3_PRESENCEOFM_Yes,QS2_9_PRESENCEOFA_Yes,
+                                   QS2_6_MENTOREXPER, QS1_1_AGE)
+colSums(is.na(subset))
+
+```
+
+```{r}
+#---unimputed
 model <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
                                             QS3_4_LIFEEVENTS1_16_16_X1 + 
                                             QS3_4_LIFEEVENTS1_18_18_X1 + 
-                                            QS2_3_PRESENCEOFM_Yes + 
+                                            QS2_3_PRESENCEOFM_Yes +
                                             QS2_9_PRESENCEOFA_Yes + 
-                                            QS2_6_MENTOREXPER + 
                                             QS1_1_AGE , 
-            data = mean_mode_imputed_train)
+            data = ohe_unimputed_train)
 summary(model)
+#----knn imputed
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
 
-
-lg_model <- glm(QS2_9_PRESENCEOFA_Yes ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+#----logistic unimputed
+lg_model_unimputed <- glm(QS2_9_PRESENCEOFA_Yes ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
                                          QS3_4_LIFEEVENTS1_16_16_X1 + 
                                          QS3_4_LIFEEVENTS1_18_18_X1 + 
                                          QS2_3_PRESENCEOFM_Yes + 
                                          QS1_1_AGE, 
             data = mean_mode_imputed_train,
+            family = binomial)
+summary(lg_model_unimputed)
+
+#----logistic knn imputed
+lg_model <- glm(QS2_9_PRESENCEOFA_Yes ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                         QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                         QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                         QS2_3_PRESENCEOFM_Yes + 
+                                         QS1_1_AGE, 
+            data = knn_imputed_train,
             family = binomial)
 summary(lg_model)
 ```
@@ -278,7 +314,6 @@ xgb_cv_knn_imputed <- xgb.cv(params = list(max_depth = 4, eta = 0.1), data = dma
 xgb.plot.importance(xgb.importance(model = xgb_model_knn_imputed))
 kable(xgb_importance_knn_imputed_df)
 ```
-
 
 ### XGB model 2:
 
