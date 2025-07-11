@@ -2,7 +2,7 @@
 
 from langchain_ollama import OllamaEmbeddings
 
-# for later (web deployment)
+# for later (web deployment), will need to set up credentials and paid service
 from langchain_community.embeddings.bedrock import BedrockEmbeddings
 
 def get_embedding_function():

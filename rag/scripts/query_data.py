@@ -6,6 +6,7 @@ from get_embedding_function import get_embedding_function
 
 CHROMA_PATH = "rag/chroma"
 
+
 PROMPT_TEMPLATE = """
 You are a domain expert in mentorship. Answer the question based only on the following context:
 
@@ -34,11 +35,17 @@ def query_rag(query_text:str):
 
     # search the database
     results = db.similarity_search_with_score(query_text, k=5)
+    if not results:
+        print("No relevant documents retrieved for this query.")
+    else:
+        for doc, score in results:
+            print(f"Score: {score}, ID: {doc.metadata.get('id')}, Content preview: {doc.page_content[:300]}")
+
 
     context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(context=context_text, question=query_text)
-    # print(prompt)
+    print(prompt)
 
     model = OllamaLLM(model="mistral")
     response_text = model.invoke(prompt)

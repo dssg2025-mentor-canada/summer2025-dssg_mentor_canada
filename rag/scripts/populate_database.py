@@ -1,15 +1,14 @@
 import argparse
 import os
 import shutil
-from langchain.document_loaders.pdf import PyPDFDirectoryLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from get_embedding_function import get_embedding_function
 from langchain_chroma import Chroma
 
-DATA_PATH = "rag/rag_data"
+DATA_PATH = "rag/rag_data/*.pdf"
 CHROMA_PATH = "rag/chroma"
-
 
 def main():
 
@@ -18,28 +17,69 @@ def main():
     parser.add_argument("--reset", action="store_true", help="Reset the database.")
     args = parser.parse_args()
     if args.reset:
-        print("✨ Clearing Database")
+        print("Clearing Database")
         clear_database()
 
 
     # create or update the data store
     documents = load_documents()
+    print(f"First document content preview: {documents[0].page_content[:500] if documents else 'No documents loaded'}")
+
     chunks = split_documents(documents)
+    print(f"Created {len(chunks)} chunks.")
+    print(f"First chunk content preview: {chunks[0].page_content[:500] if chunks else 'No chunks created'}")
+
     add_to_chroma(chunks)
 
 
+# def load_documents():
+#     document_loader = PyPDFDirectoryLoader(DATA_PATH)
+#     return document_loader.load()
+
+# from langchain.document_loaders import UnstructuredPDFLoader
+# import glob
+
+# def load_documents():
+#     pdf_files = glob.glob(f"{DATA_PATH}/*.pdf")
+#     all_docs = []
+#     for pdf_file in pdf_files:
+#         loader = UnstructuredPDFLoader(
+#             pdf_file,
+#             mode="elements",
+#             strategy="ocr_only"
+#         )
+#         docs = loader.load()
+#         all_docs.extend(docs)
+#     print(f"Loaded {len(all_docs)} documents.")
+#     return all_docs
 def load_documents():
-    document_loader = PyPDFDirectoryLoader(DATA_PATH)
-    return document_loader.load()
+    loader = PyPDFLoader(DATA_PATH)
+    pages = loader.load()
+    print(f"{pages[0].metadata}\n")
+    print(pages[0].page_content)
+
+
+# def split_documents(documents: list [Document]):
+#     text_splitter = RecursiveCharacterTextSplitter(
+#         chunk_size=1000,
+#         chunk_overlap=80,
+#         length=len,
+#         is_separator_regex=False
+#     )
+#     return text_splitter.split_documents(documents)
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def split_documents(documents: list [Document]):
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=80,
-        length=len,
+        length_function=len,
         is_separator_regex=False
     )
     return text_splitter.split_documents(documents)
+
+
 
 def add_to_chroma(chunks: list[Document]):
     # load the current database
@@ -62,12 +102,12 @@ def add_to_chroma(chunks: list[Document]):
             new_chunks.append(chunk)
 
     if len(new_chunks):
-        print(f"👉 Adding new documents: {len(new_chunks)}")
+        print(f"adding new documents: {len(new_chunks)}")
         new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
         db.add_documents(new_chunks, ids=new_chunk_ids)
         db.persist()
     else:
-        print("✅ No new documents to add")
+        print("No new documents to add")
 
 def calculate_chunk_ids(chunks):
     # creates ids like rag/rag_data/mentor_canada_resources/rag/rag_data
