@@ -89,18 +89,6 @@ def ocr_images_to_searchable_pdf(stem=None, image_folder="rag/pdf_images", outpu
     merger.write(str(output_pdf))
     merger.close()
 
-
-# ALL_IMAGE_PATHS=glob("rag/pdf_images/*.png")
-# for pdf_image in ALL_IMAGE_PATHS:
-
-#     try:
-#         print(f"Converting into Text-Selectable PDF: {pdf_image}")
-#         ocr_images_to_searchable_pdf()
-#     except Exception as e:
-#         print(f"❌ Unexpected error with {pdf_image}: {e}")
-        
-    # print(f"✅ Successfully created searchable PDF for: {output_pdf}")
-
 image_folder = Path("rag/pdf_images")
 output_folder = Path("rag/processed_pdfs")
 output_folder.mkdir(parents=True, exist_ok=True)
