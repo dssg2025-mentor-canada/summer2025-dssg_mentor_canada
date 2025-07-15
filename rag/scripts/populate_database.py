@@ -33,27 +33,6 @@ def main():
 
     add_to_chroma(chunks)
 
-
-# def load_documents():
-#     document_loader = PyPDFDirectoryLoader(DATA_PATH)
-#     return document_loader.load()
-
-# from langchain.document_loaders import UnstructuredPDFLoader
-# import glob
-
-# def load_documents():
-#     pdf_files = glob.glob(f"{DATA_PATH}/*.pdf")
-#     all_docs = []
-#     for pdf_file in pdf_files:
-#         loader = UnstructuredPDFLoader(
-#             pdf_file,
-#             mode="elements",
-#             strategy="ocr_only"
-#         )
-#         docs = loader.load()
-#         all_docs.extend(docs)
-#     print(f"Loaded {len(all_docs)} documents.")
-#     return all_docs
 def load_documents():
     all_docs = []
     for path in DATA_PATH:
@@ -62,16 +41,6 @@ def load_documents():
         all_docs.extend(docs)
     print(f"Loaded {len(all_docs)} pages from {len(DATA_PATH)} PDFs")
     return all_docs
-
-
-# def split_documents(documents: list [Document]):
-#     text_splitter = RecursiveCharacterTextSplitter(
-#         chunk_size=1000,
-#         chunk_overlap=80,
-#         length=len,
-#         is_separator_regex=False
-#     )
-#     return text_splitter.split_documents(documents)
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
