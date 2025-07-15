@@ -146,6 +146,19 @@ model_imputed <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 +
                                             QS1_1_AGE , 
             data = knn_imputed_train)
 summary(model_imputed)
+
+model_imputed <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            # QS2_3_PRESENCEOFM_Yes +
+                                            # QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
+```
+
+```         
 ```
 
 # Further education (binary outcome) x mentor exposure

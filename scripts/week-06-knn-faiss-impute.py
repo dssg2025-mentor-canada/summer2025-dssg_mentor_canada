@@ -221,9 +221,19 @@ def postprocess_and_save(imputed_data, feature_cols, passthrough_data, imputed_f
 
 # Main workflow
 def main():
-    file_path = '../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather'
-    output_path = '../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_dataset.csv'
-    k_neighbors = 5
+    #file_path = "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_train.feather" # uncomment this if want to impute the nomalized-ordinals data
+    # output_path = '../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_normalize_train_dataset.csv'
+    
+    # file_path = '../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather' 
+    # output_path = '../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_train_dataset.csv'
+
+    # file_path = '../../dssg-2025-mentor-canada/Data/ohe_unimputed_test.feather' 
+    # output_path = '../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_test_dataset.csv'
+
+    file_path = "../../dssg-2025-mentor-canada/Data/ohe_umimputed_all_data.feather"    # whole data
+    output_path = '../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_all_data.csv'
+    
+    k_neighbors = 40
     missing_threshold = 0.97
 
     # List of prefixes for passthrough columns:

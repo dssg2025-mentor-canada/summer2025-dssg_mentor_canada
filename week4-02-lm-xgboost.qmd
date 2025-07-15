@@ -30,13 +30,31 @@ set.seed(512) # Set seed to ensure code result reproducibility for randomization
 
 ```{r}
 ohe_unimputed_train <- read_feather('../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather')
-ohe_unimputed_train <- ohe_unimputed_train %>% mutate_all(~as.numeric(as.character(.)))
-
+ohe_unimputed_train <- ohe_unimputed_train %>% mutate_all(~as.numeric(as.character(.))) |>
+                             mutate(any_mentor = ifelse(QS2_3_PRESENCEOFM_Yes == 1 |QS2_9_PRESENCEOFA_Yes == 1, 1, 0), 
+                                    not_low_ses = ifelse(QS3_4_LIFEEVENTS1_11_11_X1 == 0 |
+                                            QS3_4_LIFEEVENTS1_16_16_X1 == 0 |
+                                            QS3_4_LIFEEVENTS1_18_18_X1 == 0, 1, 0)) 
+data_unnorm <- # read_feather("../../dssg-2025-mentor-canada/Data/ohe_umimputed_all_data.feather") |>
+read_csv("../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_all_data.csv") |>
+     mutate_all(~as.numeric(as.character(.))) |>
+     mutate(any_mentor = ifelse(QS2_3_PRESENCEOFM_Yes == 1 |QS2_9_PRESENCEOFA_Yes == 1, 1, 0), 
+                                    not_low_ses = ifelse(QS3_4_LIFEEVENTS1_11_11_X1 == 0 |
+                                            QS3_4_LIFEEVENTS1_16_16_X1 == 0 |
+                                            QS3_4_LIFEEVENTS1_18_18_X1 == 0, 1, 0),
+                                     low_ses = ifelse(QS3_4_LIFEEVENTS1_11_11_X1 == 1 |
+                                                                    QS3_4_LIFEEVENTS1_16_16_X1 == 1 |
+                                                                    QS3_4_LIFEEVENTS1_18_18_X1 == 1, 1, 0))|>
+                            filter(QS1_28_EMPLOYMENT_calculated < 542000)
 
 mean_mode_imputed_train <- read_feather("../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.feather")
 
 # knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_dataset.csv')
-knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_dataset.csv')
+knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_train.csv')|>
+                             mutate(any_mentor = ifelse(QS2_3_PRESENCEOFM_Yes == 1 |QS2_9_PRESENCEOFA_Yes == 1, 1, 0), 
+                                    not_low_ses = ifelse(QS3_4_LIFEEVENTS1_11_11_X1 == 0 |
+                                            QS3_4_LIFEEVENTS1_16_16_X1 == 0 |
+                                            QS3_4_LIFEEVENTS1_18_18_X1 == 0, 1, 0))
 
 ```
 
@@ -63,6 +81,7 @@ colSums(is.na(subset))
 
 ```{r}
 #---unimputed
+# Use this:
 model <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
                                             QS3_4_LIFEEVENTS1_16_16_X1 + 
                                             QS3_4_LIFEEVENTS1_18_18_X1 + 
@@ -71,6 +90,34 @@ model <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 +
                                             QS1_1_AGE , 
             data = ohe_unimputed_train)
 summary(model)
+
+# ver 2
+
+model <- lm(QS1_28_EMPLOYMENT_calculated ~  not_low_ses * any_mentor +
+                                           # QS2_6_MENTOREXPER + 
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model) # those who had a mentor faired worse if they were in low ses--if one is not in low ses and had a mentor, income seem to be positively associated
+# having a mentor helps those who were in higher SES *****
+
+
+model <- lm(QS1_28_EMPLOYMENT_calculated ~  low_ses * any_mentor +
+                                           # QS2_6_MENTOREXPER + 
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model)
+
+# ver 3
+model <- lm(QS1_28_EMPLOYMENT_calculated ~ QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS1_1_AGE + 
+                                            QS2_3_PRESENCEOFM_Yes*QS2_9_PRESENCEOFA_Yes, 
+            data = data_unnorm)
+summary(model)
+
+ggplot(data_unnorm, aes(x = QS1_28_EMPLOYMENT_calculated, y = QS1_28_EMPLOYMENT_calculated)) + geom_point()
+
 #----knn imputed
 model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
                                             QS3_4_LIFEEVENTS1_16_16_X1 + 
@@ -107,16 +154,26 @@ summary(lg_model)
 ### Running linear regression KNN imputed data:
 
 ```{r}
+# Use this:
+# ver 1:
 model_knn_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
                                             QS3_4_LIFEEVENTS1_16_16_X1 + 
                                             QS3_4_LIFEEVENTS1_18_18_X1 + 
                                             QS2_3_PRESENCEOFM_Yes + 
                                             QS2_9_PRESENCEOFA_Yes + 
-                                            QS2_6_MENTOREXPER + 
+                                           # QS2_6_MENTOREXPER + 
                                             QS1_1_AGE , 
             data = knn_imputed_train)
 summary(model_knn_imputed)
 
+# ----
+# ver 2
+model_knn_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  not_low_ses + 
+                                            any_mentor +
+                                           # QS2_6_MENTOREXPER + 
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_knn_imputed)
 
 lg_model_knn_imputed <- glm(QS2_9_PRESENCEOFA_Yes ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
                                          QS3_4_LIFEEVENTS1_16_16_X1 + 
@@ -126,6 +183,143 @@ lg_model_knn_imputed <- glm(QS2_9_PRESENCEOFA_Yes ~  QS3_4_LIFEEVENTS1_11_11_X1 
             data = knn_imputed_train,
             family = binomial)
 summary(lg_model_knn_imputed)
+```
+
+### Year since completing higher education (instead of age)
+
+```{r}
+model_knn_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes + 
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS1_1_AGE +
+                        QS2_3_PRESENCEOFM_Yes*QS3_4_LIFEEVENTS1_11_11_X1 +
+                        QS2_3_PRESENCEOFM_Yes*QS3_4_LIFEEVENTS1_16_16_X1 +
+                        QS2_3_PRESENCEOFM_Yes*QS3_4_LIFEEVENTS1_18_18_X1 +
+                        QS2_9_PRESENCEOFA_Yes*QS3_4_LIFEEVENTS1_11_11_X1 +
+                        QS2_9_PRESENCEOFA_Yes*QS3_4_LIFEEVENTS1_16_16_X1 +
+                        QS2_3_PRESENCEOFM_Yes*QS3_4_LIFEEVENTS1_18_18_X1 
+                       , 
+            data = knn_imputed_train)
+summary(model_knn_imputed)
+
+mentor_alone <- lm(QS1_28_EMPLOYMENT_calculated ~ 
+                                            QS2_3_PRESENCEOFM_Yes + 
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS1_1_AGE, 
+            data = knn_imputed_train)
+summary(mentor_alone)
+
+```
+
+```{r}
+#----knn imputed income
+
+knn_imputed_train <- knn_imputed_train |>
+                      mutate(mentor_6to18 = ifelse(QS2_3_PRESENCEOFM_Yes == 1 | QS2_9_PRESENCEOFA_Yes == 1, 1, 0))
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_37_HELPFULNESS+
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
+
+# Use this:
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            # QS2_3_PRESENCEOFM_Yes +
+                                            # QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_37_HELPFULNESS+
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
+
+# ver 2:
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            # QS2_3_PRESENCEOFM_Yes +
+                                            # QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_37_HELPFULNESS+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)
+
+# ver 2:
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~ low_ses + 
+                                            # QS2_3_PRESENCEOFM_Yes +
+                                            # QS2_9_PRESENCEOFA_Yes + 
+                                            
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)
+
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)                                                 # *****
+
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            # QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = knn_imputed_train)
+summary(model_imputed)
+
+# interaction 1
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            # QS2_6_MENTOREXPER+
+                                            QS1_1_AGE +
+                                            QS3_4_LIFEEVENTS1_11_11_X1*QS2_3_PRESENCEOFM_Yes + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1*QS2_3_PRESENCEOFM_Yes + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1*QS2_3_PRESENCEOFM_Yes, 
+            data = knn_imputed_train)
+summary(model_imputed)
+
+# interaction 2
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            # QS2_3_PRESENCEOFM_Yes +
+                                            # QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_37_HELPFULNESS+
+                                            QS1_1_AGE +
+                                            QS3_4_LIFEEVENTS1_11_11_X1*QS2_37_HELPFULNESS + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1*QS2_37_HELPFULNESS + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1*QS2_37_HELPFULNESS, 
+            data = knn_imputed_train)
+summary(model_imputed)
+```
+
+```{r}
+# unimputed
+model_imputed_unimputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            # QS2_3_PRESENCEOFM_Yes +
+                                            # QS2_9_PRESENCEOFA_Yes + 
+                                            QS2_37_HELPFULNESS+
+                                            QS1_1_AGE +
+                                            QS3_4_LIFEEVENTS1_11_11_X1*QS2_37_HELPFULNESS + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1*QS2_37_HELPFULNESS + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1*QS2_37_HELPFULNESS, 
+            data = data_unnorm)
+summary(model_imputed_unimputed)
 ```
 
 #### Multicollinearity:
@@ -297,6 +491,7 @@ y_knn_imputed <- log(knn_imputed_train$QS1_28_EMPLOYMENT_calculated + 1)
 dmatrix_knn_imputed <- xgb.DMatrix(x_knn_imputed, label = y_knn_imputed)
 xgb_model_knn_imputed <- xgboost(data = dmatrix_knn_imputed, nrounds = 100, objective = "reg:squarederror", 
                      params = list(max_depth = 4, eta = 0.1))
+
 xgb.importance(model = xgb_model_knn_imputed)
 
 xgb.plot.importance(xgb.importance(model = xgb_model_knn_imputed))
@@ -363,6 +558,238 @@ xgb_cv_knn_imputed <- xgb.cv(params = list(max_depth = 4, eta = 0.1), data = dma
 ```
 
 ```{r}
-xgb.plot.importance(xgb.importance(model = xgb_model_knn_imputed))
+xgb.ggplot.importance(xgb.importance(model = xgb_model_knn_imputed), rel_to_first = TRUE) +
+         scale_fill_brewer(palette = 'Accent') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 12),
+        plot.title = element_text(size = 14),
+        legend.text = element_text(size = 11)) 
+
 kable(xgb_importance_knn_imputed_df)
+```
+
+### Mentor helpfulness instead of Mentor experience:
+
+```{r}
+#| output: false
+x_knn_imputed <- model.matrix(~ QS3_4_LIFEEVENTS1_11_11_X1 + QS3_4_LIFEEVENTS1_16_16_X1 +  QS3_4_LIFEEVENTS1_18_18_X1 + QS2_37_HELPFULNESS + QS1_1_AGE, 
+                  data = knn_imputed_train)[, -1]
+y_knn_imputed <- log(knn_imputed_train$QS1_28_EMPLOYMENT_calculated + 1)
+dmatrix_knn_imputed <- xgb.DMatrix(x_knn_imputed, label = y_knn_imputed)
+xgb_model_knn_imputed <- xgboost(data = dmatrix_knn_imputed, nrounds = 100, objective = "reg:squarederror", 
+                     params = list(max_depth = 4, eta = 0.1))
+xgb.importance(model = xgb_model_knn_imputed)
+
+xgb.plot.importance(xgb.importance(model = xgb_model_knn_imputed))
+```
+
+```{r}
+#| output: false
+xgb_importance_knn_imputed_df <- xgb.importance(model = xgb_model_knn_imputed)
+
+xgb_cv_knn_imputed <- xgb.cv(params = list(max_depth = 4, eta = 0.1), data = dmatrix, nrounds = 200, nfold = 5)
+```
+
+```{r}
+xgb.ggplot.importance(xgb.importance(model = xgb_model_knn_imputed), rel_to_first = TRUE) +
+         scale_fill_brewer(palette = 'Accent') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 12),
+        plot.title = element_text(size = 14),
+        legend.text = element_text(size = 11)) 
+
+kable(xgb_importance_knn_imputed_df)
+```
+
+------------------------------------------------------------------------
+
+## Predicting mental health:
+
+> 
+
+```{r}
+model_imputed <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_3_PRESENCEOFM_Yes +
+                                            QS2_9_PRESENCEOFA_Yes + 
+                                            # QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed) # *****
+
+model_imputed <- lm(QS4_9_MENTALHEALTH ~  not_low_ses *  QS2_6_MENTOREXPER +
+                                          
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed) # ***** # model 2
+
+model_imputed <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed) # *****
+
+```
+
+> Full low SES indicators interpretation:
+>
+> The linear regression model evaluates the impact of specific low socioeconomic status (SES) indicators in youth—family financial assistance (QS3_4_LIFEEVENTS1_11_11_X1), working to support family (QS3_4_LIFEEVENTS1_16_16_X1), and food bank use (QS3_4_LIFEEVENTS1_18_18_X1)—along with mentorship presence in early (ages 6–11, **QS2_3_PRESENCEOFM_Yes**) and later youth (ages 12–18, QS2_9_PRESENCEOFA_Yes), and current age on adult mental health (QS4_9_MENTALHEALTH).
+>
+> Having to work to support the family in youth is associated with better mental health (β = 0.1786, p = 0.015), while food bank use is linked to worse mental health (β = -0.1895, p = 0.023). A mentor’s presence from ages 6–11 significantly improves mental health (β = 0.2673, p \< 0.001). Financial assistance, later mentorship (ages 12–18), and age are not significant predictors.
+
+> If using `not_low_ses`:
+>
+> The linear regression model assesses how adult mental health (QS4_9_MENTALHEALTH) is influenced by youth socioeconomic status (SES), the presence of a mentor during ages 6–11 and 12–18, and current age.
+>
+> > Having a mentor from ages 6–11 (QS2_3_PRESENCEOFM_Yes) is associated with better mental health (β = 0.2572, p \< 0.001), increasing the mental health rating by about 0.26 points. Not having low SES in youth (not_low_ses) is linked to **slightly worse** mental health (β = -0.2675, p = 0.034).
+> >
+> > The presence of a mentor from ages 12–18 and age do **not** significantly predict mental health.
+
+```{r}
+
+model_imputed <- lm(QS4_9_MENTALHEALTH ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_37_HELPFULNESS +
+                                            # QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed) # *****
+
+
+```
+
+```{r}
+# Given that the participant has mentor:
+model_imputed <- lm(QS4_9_MENTALHEALTH ~  not_low_ses * QS2_6_MENTOREXPER +
+                                            QS2_6_MENTOREXPER * QS2_37_HELPFULNESS+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed) # *****
+```
+
+> The linear regression model examines the relationship between adult mental health (**QS4_9_MENTALHEALTH**) and youth socioeconomic status (SES), mentor experience quality, mentor helpfulness, and age. Having more positive mentor experiences from ages 6–18 (**QS2_6_MENTOREXPER**) is associated with better mental health (β = 0.4896, p = 0.016), with each unit increase in positive mentor experience raising mental health ratings by about 0.49 points.
+>
+> Older age is linked to slightly worse mental health (β = -0.0152, p = 0.027), with each year reducing the rating by 0.015 points.
+>
+> Neither SES, mentor helpfulness, nor their interactions significantly predict mental health. The model explains only 2.9% of the variance in mental health (R² = 0.029)
+
+## Previous models predicting income:
+
+```{r}
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)   
+
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  not_low_ses*  QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)  
+
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  not_low_ses*  QS2_37_HELPFULNESS+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)  
+# *****
+```
+
+```{r}
+# ver 2
+
+model <- lm(QS1_28_EMPLOYMENT_calculated ~  not_low_ses * any_mentor +
+                                           # QS2_6_MENTOREXPER + 
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model) # those who had a mentor faired worse if they were in low ses--if one is not in low ses and had a mentor, income seem to be positively associated
+# having a mentor helps those who were in higher SES *****
+
+
+```
+
+> > for those from low SES backgrounds, having a mentor is associated with a \$19,218 decrease in annual income, which is statistically significant but **counterintuitive** and may warrant further investigation (e.g., type of mentorship or other confounding factors).
+> >
+> > The interaction term (\$not_low_ses:any_mentor\$, β = 20751.1, p = 0.035) indicates that for individuals from non-low SES backgrounds (not_low_ses = 1), the effect of having a mentor is positive, increasing income by an additional \$20,751 compared to those from low SES with a mentor.
+
+```{r}
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_6_MENTOREXPER+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)                                                 # *****
+```
+
+> 
+
+```{r}
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                                            QS2_34_SUPPORTS1_9_9+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)   
+
+model_imputed <- lm(QS1_28_EMPLOYMENT_calculated ~  low_ses * QS4_3_CAREERPLANNIN1_3_3+
+                                            QS1_1_AGE , 
+            data = data_unnorm)
+summary(model_imputed)   
+```
+
+## Mediation Analysis
+
+```{r}
+library(mediation)
+data<-data_unnorm
+ # Prepare data
+ data$low_ses <- as.integer(data$QS3_4_LIFEEVENTS1_11_11_X1 | data$QS3_4_LIFEEVENTS1_16_16_X1 | data$QS3_4_LIFEEVENTS1_18_18_X1)
+ data$mentorship <- data$QS2_3_PRESENCEOFM_Yes  # Binary mentorship variable
+ data$adult_ses <- log(data$QS1_28_EMPLOYMENT_calculated + 1)  # Log-transform income, assuming continuous
+ 
+ # Step 1: Path a (SES -> Mentorship)
+ model_m <- glm(mentorship ~ low_ses + QS1_1_AGE + QS2_9_PRESENCEOFA_Yes, 
+                family = binomial, data = data)
+ 
+ # Step 2: Path b and c' (Mentorship and SES -> Adult SES)
+ model_y <- lm(adult_ses ~ low_ses + mentorship + QS1_1_AGE + QS2_9_PRESENCEOFA_Yes, 
+               data = data)
+ 
+ # Step 3: Mediation analysis
+ med_model <- mediate(model_m, model_y, treat = "low_ses", mediator = "mentorship", 
+                     boot = TRUE, sims = 1000)
+ 
+ # Summary of results
+ summary(med_model)
+
+```
+
+```{r}
+ # Prepare data
+ data$low_ses <- as.integer(data$QS3_4_LIFEEVENTS1_11_11_X1 | data$QS3_4_LIFEEVENTS1_16_16_X1 | data$QS3_4_LIFEEVENTS1_18_18_X1)
+ data$mentorship <- data$QS2_3_PRESENCEOFM_Yes  # Binary mentorship variable
+ data$adult_mental_health <- data$QS4_9_MENTALHEALTH  # Log-transform income, assuming continuous
+ 
+ # Step 1: Path a (SES -> Mentorship)
+ model_m <- glm(mentorship ~ low_ses + QS1_1_AGE + QS2_9_PRESENCEOFA_Yes, 
+                family = binomial, data = data)
+ 
+ # Step 2: Path b and c' (Mentorship and SES -> Adult SES)
+ model_y <- lm(adult_mental_health ~ low_ses + mentorship + QS1_1_AGE + QS2_9_PRESENCEOFA_Yes, 
+               data = data)
+ 
+ # Step 3: Mediation analysis
+ med_model <- mediate(model_m, model_y, treat = "low_ses", mediator = "mentorship", 
+                     boot = TRUE, sims = 1000)
+ 
+ # Summary of results
+ summary(med_model)
+
 ```

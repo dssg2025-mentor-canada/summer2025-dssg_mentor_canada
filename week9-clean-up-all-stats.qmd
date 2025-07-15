@@ -1,0 +1,582 @@
+---
+title: Clean up all classical stats
+date: 2025-07-05
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(readxl)
+library(readr)
+library(knitr)
+library(arrow)
+library(infer)
+library(ggplot2)
+library(broom)
+set.seed(512)
+```
+
+## Raw data:
+
+```{r}
+youth_orig <- read_csv("../../dssg-2025-mentor-canada/Data/encodedselectall.csv")
+```
+
+> n = 2838
+
+## Unnormalized ordinal + unimputed data import + normalized metric:
+
+```{r}
+data_unnorm <- read_feather("../../dssg-2025-mentor-canada/Data/ohe_umimputed_all_data.feather")
+```
+
+> n = 2396
+
+## Normalzied ordinal + unimputed data import + normalized metric:
+
+```{r}
+data_normed <- read_feather("../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_all_data.feather")
+```
+
+> n = 2396
+
+### Examin normalization (use age column)
+
+```{r}
+# data_unnorm |> select(QS1_1_AGE) |> mutate(orig_age = (QS1_1_AGE *3.80) + 24.5) |> head()
+# youth_orig |>  select(QS1_1_AGE) |> head()
+```
+
+------------------------------------------------------------------------
+
+# Use Un-normalized ordinal for EDA:
+
+## Proportion of Yes/No mentor
+
+```{r}
+# create new column to compile any respondent who has at least 1 mentor growing up:
+data_unnorm <- data_unnorm |>
+                mutate(any_mentor = ifelse(QS2_3_PRESENCEOFM_Yes == 1 |QS2_9_PRESENCEOFA_Yes == 1, 1, 0))
+```
+
+```{r}
+data_unnorm |> 
+ summarize(had_mentor = sum(any_mentor == 1), had_no_mentor = sum(any_mentor == 0))
+```
+
+> | Had mentor growing up | Had no mentor growing up |
+> |-----------------------|--------------------------|
+> | 1312                  | 1084                     |
+>
+> : Number of participant who had mentor vs. no mentor
+
+```{r}
+# create new column to compile any respondent who has at least 1 of the 3 low youth SES indicators of our interest: 
+data_unnorm <- data_unnorm |> 
+                mutate(any_low_ses = ifelse(QS3_4_LIFEEVENTS1_11_11_X1 == 1 |
+                                            QS3_4_LIFEEVENTS1_16_16_X1 == 1 |
+                                            QS3_4_LIFEEVENTS1_18_18_X1 == 1, 1, 0))
+```
+
+## Number of Yes/No mentor x Yes/No low SES
+
+```{r}
+mentor_ses_n <- data_unnorm |> 
+                    group_by(any_mentor) |>
+                    summarize(yes_low_ses = sum(any_low_ses == 1),
+                              not_low_ses = sum(any_low_ses == 0),)
+mentor_ses_n
+```
+
+> 1.  Most respondents are not in low ses growing up.
+> 2.  Slightly over half of all respondent had at least one mentor growing up, but difference is marginal.
+
+**Proportion** of Low SES youth who had mentor vs. no:
+
+```{r}
+mentor_ses_n |> 
+summarize(mentor_n_in_low_ses = mentor_ses_n[2,2]/sum(yes_low_ses))
+```
+
+> 59.6% of respondent in low-SES growing up (age 6-18) had at least one mentor.
+
+Proportion of Median/high SES youth who had mentor vs. no:
+
+```{r}
+mentor_ses_n |> 
+summarize(mentor_n_in_low_ses = mentor_ses_n[2,3]/sum(not_low_ses))
+```
+
+> 52.6% of respondent not in low-SES growing up (age 6-18) had at least one mentor.
+
+-   Conclusion: Slightly more individuals in low-SES growing up had a mentor than those who were not in low-SES.
+
+### Proportion of individuals with mentor experience between high vs. low SES
+
+------------------------------------------------------------------------
+
+## Proportion of those who experienced mentor access barrier in Low vs. High SES
+
+> May help to answer / explore why there's higher proportion of lower SES-individuals having mentors.
+
+```{r}
+
+# data_unnorm |> group_by(any_low_ses) |> summarize(no_avaliable_mentor_prop = sum(Barrier_MentorProgramAvailability, na.rm = TRUE))
+# data_unnorm |> group_by(any_low_ses) |> select(Barrier_MentorProgramAvailability) |> summarize(count = n())
+# data_unnorm |> group_by(any_low_ses) |> select(Barrier_MentorProgramAvailability) |> summarize(sum(!is.na(Barrier_MentorProgramAvailability)))
+
+
+access_barrier_summary <- data_unnorm |> 
+group_by(any_low_ses) |> summarize(no_avaliable_mentor_prop = mean(Barrier_MentorProgramAvailability, na.rm = TRUE),
+                                                  no_avaliable_mentor_n = sum(!is.na(Barrier_MentorProgramAvailability)), 
+                                                  
+                                                  lack_resource_to_find_prop = mean(Barrier_HowToFindMentor, na.rm = TRUE), 
+                                                  lack_resource_to_find_n = sum(!is.na(Barrier_HowToFindMentor)), 
+                                                  
+                                                  lack_perceived_utility_prop = mean(Barrier_MentorValue, na.rm = TRUE), 
+                                                  lack_perceived_utility_n = sum(!is.na(Barrier_MentorValue)), 
+                                                  
+                                                  social_pressure_prop = mean(Barrier_OtherKids, na.rm = TRUE),
+                                                  social_pressure_n = sum(!is.na(Barrier_OtherKids)), 
+                                                  
+                                                  lack_perceived_relevance_prop = mean(Barrier_Relevance == 1, na.rm = TRUE),
+                                                  lack_perceived_relevance_n = sum(!is.na(Barrier_Relevance)), 
+                                                  
+                                                  lack_parent_uninsterested_prop = mean(Barrier_Parent == 1, na.rm = TRUE),
+                                                 lack_parent_uninsterested_n = sum(!is.na(Barrier_Parent)), 
+                                                  
+                                                  lack_waitlisted_prop = mean(Barrier_Waitlisted == 1, na.rm = TRUE),
+                                                  lack_waitlisted_n = sum(!is.na(Barrier_Waitlisted)))
+
+access_barrier_summary
+View(access_barrier_summary)
+```
+
+```{r}
+data_unnorm_barriers <- data_unnorm |> select(Barrier_MentorProgramAvailability,
+                                              Barrier_HowToFindMentor, 
+                                              Barrier_MentorValue, 
+                                              Barrier_OtherKids,
+                                              Barrier_Relevance,
+                                              Barrier_Parent,
+                                              Barrier_Waitlisted, 
+                                              any_mentor,
+                                              any_low_ses) |>
+                            mutate(any_mentor = as.factor(any_mentor),
+                                   any_low_ses = as.factor(any_low_ses))
+```
+
+```{r}
+null_distribution_barrier_peer <- data_unnorm_barriers |>
+                        filter(!is.na(Barrier_OtherKids) & !is.na(any_low_ses)) |>
+                        mutate(Barrier_OtherKids = as.factor(Barrier_OtherKids)) |>
+                        specify(Barrier_OtherKids ~ any_low_ses, success = "1") |> # perceived barrier = 1
+                        hypothesize(null = "independence") |>
+                        generate(reps = 1000, type = "permute") |>
+                        calculate(stat = "diff in props", order = c(1, 0))
+
+```
+
+```{r}
+obs_diff_barrier_peer <-  data_unnorm_barriers |>
+                        filter(!is.na(Barrier_OtherKids) & !is.na(any_low_ses)) |>
+                        mutate(Barrier_OtherKids = as.factor(Barrier_OtherKids)) |>                       
+                        specify(Barrier_OtherKids ~ any_low_ses, success = "1") |> # perceived barrier = 1
+                        calculate(stat = "diff in props", order = c("1", "0"))
+
+null_distribution_barrier_peer |> get_p_value(obs_stat = obs_diff_barrier_peer, direction = "greater")
+```
+
+```{r}
+# 1. two-sample proportion test for no_available_mentor_prop
+# prop.test(x = c(0.360 * n_0, 0.324 * n_1), n = c(n_0, n_1), alternative = "two.sided")
+n_0 = 578
+n_1 = 376
+prop.test(x = c(0.360 * n_0, 0.324 * n_1), n = c(n_0, n_1), alternative = "two.sided")
+```
+
+> p-value = 0.2834
+
+```{r}
+# 2. two-sample proportion test for lack_resource_to_find_prop
+# prop.test(x = c(0.360 * n_0, 0.324 * n_1), n = c(n_0, n_1), alternative = "two.sided")
+n_0 = 578
+n_1 = 376
+prop.test(x = c(0.612 * n_0, 0.487 * n_1), n = c(n_0, n_1), alternative = "two.sided")
+```
+
+> **p-value = 0.0001865 \*\***
+
+```{r}
+# 3.lack_perceived_utility
+n_0 = 578
+n_1 = 376
+prop.test(x = c( 0.458  * n_0, 0.388 * n_1), n = c(n_0, n_1), alternative = "two.sided")
+```
+
+> **p-value = 0.03874 \***
+
+```{r}
+# 4.lack parent interest for mentor
+n_0 = 578
+n_1 = 376
+prop.test(x = c( 0.1851  * n_0, 0.2314 * n_1), n = c(n_0, n_1), alternative = "two.sided")
+```
+
+> p-value = 0.09814
+
+```{r}
+# 5.lack preceived relevance
+n_0 = 578
+n_1 = 376
+prop.test(x = c( 0.1626* n_0, 0.2234 * n_1), n = c(n_0, n_1), alternative = "two.sided")
+```
+
+> **p-value = 0.02317 \***
+
+```{r}
+# 6.waitlisted for mentorship program
+
+n_0 = 578
+n_1 = 376
+prop.test(x = c( 0.03287* n_0, 0.13032 * n_1), n = c(n_0, n_1), alternative = "two.sided")
+```
+
+> **p-value = 2.298e-08 \*\*\***
+
+------------------------------------------------------------------------
+
+# Mentor x SES x Adulthood income
+
+```{r}
+mentor_ses_future_income <- data_unnorm |> 
+group_by(any_mentor, any_low_ses) |>
+summarize(median_income = median(QS1_28_EMPLOYMENT_calculated, na.rm = TRUE), 
+         n = n(),
+         std = sd(QS1_28_EMPLOYMENT_calculated, na.rm = TRUE))
+mentor_ses_future_income
+```
+
+> Of those who were in lower SES growing up, having had a mentor seem to lead to a \~1,000 increase in median income.
+
+# Inferential tests (bootstrapping)
+
+## 1 Mentor's influence on future income [among]{.underline} lower SES individuals
+
+-   Question: Does having mentors vs. no mentors from age 6-18 significantly increase in future median income earning among those who were in a lower SES bracket?
+
+-   Alternative Hypothesis: Yes, there is a significant increase at alpha = 0.5 (**one-tail**) level.
+
+-   H0 = Having a mentor growing up does not make a difference in future median income earning.
+
+```{r}
+library(infer)
+```
+
+```{r}
+data_unnorm_low_ses_only <- data_unnorm |>
+                            filter(any_low_ses == 1) |>
+                            mutate(any_mentor = as.character(any_mentor))
+```
+
+```{r}
+null_distribution_1 <- data_unnorm_low_ses_only |>
+                     specify(formula = QS1_28_EMPLOYMENT_calculated ~ any_mentor) |>
+                     hypothesize(null = "independence") |>
+                     generate(reps = 1000, type = "permute") |>
+                     calculate(stat = "diff in medians", order = c("1", "0"))
+```
+
+```{r}
+obs_diff_medians_1 <-  data_unnorm_low_ses_only |>
+                     specify(formula = QS1_28_EMPLOYMENT_calculated ~ any_mentor) |>
+                     calculate(stat = "diff in medians", order = c("1", "0"))
+```
+
+```{r}
+null_distribution_1 |> get_p_value(obs_stat = obs_diff_medians_1, direction = "greater")
+```
+
+> p = 0.281 (Lower SES subset: $n_{had-mentor}$= 446; $n_{no-mentor}$= 302, alpha = 0.05 (one-tail))
+
+## 1.1 Mentor's influence on future income [among]{.underline} higher SES individuals
+
+```{r}
+data_unnorm_higher_ses_only <- data_unnorm |>
+                            filter(any_low_ses == 0) |>
+                            mutate(any_mentor = as.character(any_mentor))
+data_unnorm_higher_ses_only |> filter(any_mentor == "1") |> summarize(median_income_mentor_high_ses = median(QS1_28_EMPLOYMENT_calculated, na.rm = TRUE))
+data_unnorm_higher_ses_only |> filter(any_mentor == "0") |> summarize(median_income_no_mentor_high_ses = median(QS1_28_EMPLOYMENT_calculated, na.rm = TRUE))
+```
+
+```{r}
+null_distribution_1.1 <- data_unnorm_higher_ses_only |>
+                     specify(formula = QS1_28_EMPLOYMENT_calculated ~ any_mentor) |>
+                     hypothesize(null = "independence") |>
+                     generate(reps = 1000, type = "permute") |>
+                     calculate(stat = "diff in medians", order = c("1", "0"))
+```
+
+```{r}
+obs_diff_medians_1.1 <-  data_unnorm_higher_ses_only |>
+                     specify(formula = QS1_28_EMPLOYMENT_calculated ~ any_mentor) |>
+                     calculate(stat = "diff in medians", order = c("1", "0"))
+```
+
+> Those who had mentor in higher SES seem to earn \$4,900 less than those who had a mentor.
+
+```{r}
+null_distribution_1.1 |> get_p_value(obs_stat = obs_diff_medians_1.1, direction = "right")
+
+visualize(null_distribution_1.1, bins = 10) + 
+  shade_p_value(obs_stat = obs_diff_medians_1.1, direction = "right")
+```
+
+> -   It seems like those who are in higher SES + no mentor are much higher income earner than those who had no mentor + higher SES! But why? are there other variables we're not taking into account comparing these two groups?
+
+## 2 Difference in income x mentor vs. no mentor in general
+
+```{r}
+income_mentor_selected <- data_unnorm |>
+                            select(any_mentor, QS1_28_EMPLOYMENT_calculated) |>
+                            mutate(any_mentor = as.character(any_mentor))
+```
+
+```{r}
+null_distribution_2 <- income_mentor_selected |>
+                        specify(QS1_28_EMPLOYMENT_calculated ~ any_mentor) |>
+                        hypothesize(null = "independence") |>
+                        generate(reps = 1000, type = "permute") |>
+                        calculate(stat = "diff in medians", order = c(1, 0))
+```
+
+```{r}
+obs_diff_medians_2 <- income_mentor_selected |>
+                        specify(QS1_28_EMPLOYMENT_calculated ~ any_mentor) |>
+                        calculate(stat = "diff in medians", order = c(1, 0))
+```
+
+> `{r} obs_diff_medians_2` is negative, meaning those who had a mentor seem to earn less.
+
+```{r}
+null_distribution_2 |> get_p_value(obs_stat = obs_diff_medians_2, direction = "left")
+```
+
+> p = 0.97 ($n_{had-mentor}$= 1312; $n_{no-mentor}$= 1082, alpha = 0.05 (one-tail))
+
+```{r}
+visualize(null_distribution_2, bins = 10) + 
+  shade_p_value(obs_stat = obs_diff_medians_2, direction = "left")
+```
+
+> In general, those who had a mentor vs. those who did not doesn't seem to earn more.
+
+## 3 Among those who had a lower educational attainment, lower SES, compare their median income earning between mentor vs. no mentor
+
+```{r}
+outputs_mentor_selected <- data_unnorm |>
+                         select(any_mentor, QS1_28_EMPLOYMENT_calculated, QS4_9_MENTALHEALTH,
+                                QS4_11_BELONGING, QS4_10_MENTALWELLBE1_1_1, QS4_10_MENTALWELLBE1_2_2,
+                                QS4_10_MENTALWELLBE1_5_5, QS4_10_MENTALWELLBE1_6_6, QS4_12_TRUST1_5_5,
+                                any_low_ses, QS1_21_FURTHEDUCA_Yes) 
+```
+
+```{r}
+lower_ses_edu <- outputs_mentor_selected |>
+                 filter(QS1_21_FURTHEDUCA_Yes ==  0 # lower edu
+                           & any_low_ses == 1) # n total = 170  # had mentor n1 = 92; did not have mentor n2 = 78    
+  lower_ses_edu |> group_by(any_mentor) |> summarize(n_low_ses_edu = n(),
+                                                     na_income_report = sum(is.na(QS1_28_EMPLOYMENT_calculated)))  
+                    # 41 missing count from each group, making n1 (with mentor) = 51, and n2 (had no mentor) = 37
+                    # this sample size suggests the inference test could still go on.
+
+```
+
+```{r}
+null_distribution_3 <- lower_ses_edu |>
+                        mutate(any_mentor = as.character(any_mentor)) |>
+                        specify(QS1_28_EMPLOYMENT_calculated ~ any_mentor) |>
+                        hypothesize(null = "independence") |>
+                        generate(reps = 1000, type = "permute") |>
+                        calculate(stat = "diff in medians", order = c("1", "0"))
+
+obs_diff_medians_3 <- lower_ses_edu |>
+                        mutate(any_mentor = as.character(any_mentor)) |>
+                        specify(QS1_28_EMPLOYMENT_calculated ~ any_mentor) |>
+                        calculate(stat = "diff in medians", order = c("1", "0"))
+
+null_distribution_3 |> get_p_value(obs_stat = obs_diff_medians_3, direction = "both")
+```
+
+### 3.1 Difference in mental health rating between Yes vs. No mentor, among those who had a lower educational attainment, lower SES,
+
+```{r}
+null_distribution_3.1 <- lower_ses_edu |>
+                        mutate(any_mentor = as.character(any_mentor),
+                               QS4_9_MENTALHEALTH = as.numeric(QS4_9_MENTALHEALTH) ) |>
+                        specify(QS4_9_MENTALHEALTH ~ any_mentor) |>
+                        hypothesize(null = "independence") |>
+                        generate(reps = 1000, type = "permute") |>
+                        calculate(stat = "diff in means", order = c("1", "0"))
+
+obs_diff_medians_3.1 <- lower_ses_edu |>
+                        mutate(any_mentor = as.character(any_mentor),
+                               QS4_9_MENTALHEALTH = as.numeric(QS4_9_MENTALHEALTH)) |>
+                        specify(QS4_9_MENTALHEALTH ~ any_mentor) |>
+                        calculate(stat = "diff in means", order = c("1", "0"))
+
+null_distribution_3.1 |> get_p_value(obs_stat = obs_diff_medians_3.1, direction = "both")
+```
+
+## 4 Difference in median income between Lower / higher SES (using the 3 SES indicators as the benchmark)
+
+```{r}
+obs_diff_median_4 <- outputs_mentor_selected |>
+                    mutate(any_low_ses = as.character(any_low_ses)) |>
+                    specify(QS1_28_EMPLOYMENT_calculated ~ any_low_ses) |>
+                    calculate(stat = "diff in medians", order = c(0, 1))
+
+n_count_4 <- outputs_mentor_selected |>
+                    mutate(any_low_ses = as.character(any_low_ses)) |>
+                    specify(QS1_28_EMPLOYMENT_calculated ~ any_low_ses) |>
+                    group_by(any_low_ses) |>
+                    summarize(count_group = n()) # higher SES n = 1079, lower SES n = 458
+
+null_distribution_4 <- outputs_mentor_selected |>
+                    mutate(any_low_ses = as.character(any_low_ses)) |>
+                    specify(QS1_28_EMPLOYMENT_calculated ~ any_low_ses) |>
+                    hypothesize(null = "independence") |>
+                    generate(reps = 1000, type = "permute") |>
+                    calculate(stat = "diff in medians", order = c(0, 1))
+
+null_distribution_4 |> get_p_value(obs_stat = obs_diff_median_4, direction = "right") # significant
+null_distribution_4 |> visualize(bins = 10) + 
+                shade_p_value(obs_stat = obs_diff_median_4, direction = "right") + # significant
+                labs(title = "Bootstrap H0 distribution of difference in median \nincome between higher SES vs. lower SES")
+```
+
+## 5 Difference in mental health rating in adulthood, mentor vs. no mentor
+
+```{r}
+data_unnorm_mental_health <- outputs_mentor_selected |>
+                            mutate(any_mentor = as.character(any_mentor),
+                                   QS4_9_MENTALHEALTH = as.numeric(QS4_9_MENTALHEALTH))
+```
+
+```{r}
+null_distribution_5 <- data_unnorm_mental_health |>
+                        specify(QS4_9_MENTALHEALTH ~ any_mentor) |>
+                        hypothesize(null = "independence") |>
+                        generate(reps = 1000, type = "permute") |>
+                        calculate(stat = "diff in means", order = c("1", "0"))
+
+```
+
+```{r}
+obs_diff_medians_5 <-  data_unnorm_mental_health |>
+                     specify(formula = QS4_9_MENTALHEALTH ~ any_mentor) |>
+                     calculate(stat = "diff in means", order = c("1", "0"))
+
+null_distribution_5 |> get_p_value(obs_stat = obs_diff_medians_5, direction = "greater")
+```
+
+### Observation:
+
+-   Lower SES does not seem to correlate with lower mentor participation.
+
+# ANOVA:
+
+## 1 Yes/No mentor + Higher/lower SES
+
+> **Groups**: four groups are created by combining mentor statusand SES status growing up:
+>
+> 1.  Mentor + Higher SES (1, 0)
+>
+> 2.  No Mentor + Higher SES (0, 0)
+>
+> 3.  Mentor + Lower SES (1, 1)
+>
+> 4.  No Mentor + Lower SES (0, 1)
+
+```{r}
+anova_df <- outputs_mentor_selected |> 
+            mutate(group = interaction(any_mentor, any_low_ses), 
+                  mentor_status = as.factor(any_mentor),
+                  low_ses_status = as.factor(any_low_ses), 
+                  QS4_9_MENTALHEALTH = as.numeric(QS4_9_MENTALHEALTH)) 
+```
+
+```{r}
+# Check for assumptions
+leveneTest(QS4_9_MENTALHEALTH ~ mentor_status * low_ses_status, data=anova_df)
+leveneTest(QS1_28_EMPLOYMENT_calculated ~ mentor_status * low_ses_status, data=anova_df)
+```
+
+```{r}
+anova_income <- aov(QS1_28_EMPLOYMENT_calculated ~ mentor_status * low_ses_status, data = anova_df)
+summary(anova_income)
+shapiro.test(residuals(anova_income)) # violated
+```
+
+```{r}
+anova_mental_health <- aov(QS4_9_MENTALHEALTH ~ mentor_status * low_ses_status, data = anova_df)
+summary(anova_mental_health)
+shapiro.test(residuals(anova_income))# violated
+```
+
+### Permutation (`infer`)
+
+```{r}
+plot_mental_health_ses <- anova_df |> ggplot(aes(x = group, y = QS4_9_MENTALHEALTH)) +
+geom_boxplot()
+
+
+null_anova_mental_health <- anova_df |>
+                              specify(QS4_9_MENTALHEALTH ~ group) |>
+                              hypothesize(null = "independence")|>
+                              generate(reps = 1000, type = "permute")|>
+                              calculate(stat = 'F')
+```
+
+```{r}
+obs_f_mental_health <- anova_df|>
+  specify(QS4_9_MENTALHEALTH ~ group)|>
+  calculate(stat = 'F')
+```
+
+```{r}
+null_anova_mental_health |>
+  visualize() + 
+  shade_p_value(obs_f_mental_health,
+                direction = 'greater')
+```
+
+```{r}
+p_value <- null_anova_mental_health |>
+  get_p_value(obs_stat = obs_f_mental_health,
+              direction = 'greater')
+```
+
+```{r}
+# Boxplot for income
+anova_df |>
+select(group, any_mentor, any_low_ses, QS1_28_EMPLOYMENT_calculated, QS4_9_MENTALHEALTH) |>
+group_by(group) |>
+summarize(median_income = median(QS1_28_EMPLOYMENT_calculated, na.rm = TRUE)) |>
+ggplot(aes(x = group, y = median_income)) +
+  geom_bar(stat="identity") +
+  labs(x = "Mentor Status, SES Status", y = "Income", title = "Income by Mentor and SES Status") +
+  theme_minimal()
+
+# Boxplot for mental health
+ggplot(anova_df, aes(x = interaction(mentor_status, low_ses_status), y = QS4_9_MENTALHEALTH)) +
+  geom_boxplot() +
+  labs(x = "Mentor Status, SES Status", y = "Mental Health Rating", title = "Mental Health by Mentor and SES Status") +
+  theme_minimal()
+```

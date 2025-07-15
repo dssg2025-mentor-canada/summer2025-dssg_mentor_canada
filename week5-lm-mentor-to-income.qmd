@@ -27,8 +27,9 @@ library(tidymodels)
 ohe_unimputed_train <- read_feather('../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather')
 mean_mode_imputed_train <- read_feather("../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.feather")
 
-# knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_dataset.csv')
-knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_dataset.csv') # K = 60
+knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_knn_imputed_train_dataset.csv')
+# knn_imputed_train <- read_csv('../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_train.csv') # K = 60
+
 ```
 
 ## Create new variable: `mentor_6to18`
@@ -40,6 +41,24 @@ This new variable `mentor_6to18` captures respondents who reported mentor experi
 ```{r}
 mean_mode_imputed_train <- mean_mode_imputed_train |>
                            mutate(mentor_6to18 = ifelse(QS2_3_PRESENCEOFM_Yes == 1 | QS2_9_PRESENCEOFA_Yes == 1, 1, 0))
+lm_1_mean_mode_df <- ohe_unimputed_train |>
+                     mutate(mentor_6to18 = ifelse(QS2_3_PRESENCEOFM_Yes == 1 | 
+                                                        QS2_9_PRESENCEOFA_Yes == 1, 1, 0)) |>
+                     select(QS1_28_EMPLOYMENT_calculated, QS3_4_LIFEEVENTS1_11_11_X1, QS3_4_LIFEEVENTS1_16_16_X1,
+                            QS3_4_LIFEEVENTS1_18_18_X1, QS2_3_PRESENCEOFM_Yes, 
+                            QS2_9_PRESENCEOFA_Yes, QS2_6_MENTOREXPER, QS1_1_AGE, mentor_6to18) #|>
+                            #drop_na()
+
+lm_at_least_1_mentor <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
+                            QS3_4_LIFEEVENTS1_16_16_X1 + 
+                            QS3_4_LIFEEVENTS1_18_18_X1 + 
+                            mentor_6to18 +
+                            QS1_1_AGE + 
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_11_11_X1+
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_16_16_X1+
+                            mentor_6to18 * QS3_4_LIFEEVENTS1_18_18_X1,
+                            data = lm_1_mean_mode_df)
+summary(lm_at_least_1_mentor)
 ```
 
 ## Linear Regression:
@@ -65,7 +84,7 @@ knn_imputed_train <- knn_imputed_train |>
                       mutate(mentor_6to18 = ifelse(QS2_3_PRESENCEOFM_Yes == 1 | QS2_9_PRESENCEOFA_Yes == 1, 1, 0))
 ```
 
-## Linear Regression: 
+## Linear Regression:
 
 ```{r}
 lm_at_least_1_mentor <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_11_X1 + 
@@ -74,6 +93,7 @@ lm_at_least_1_mentor <- lm(QS1_28_EMPLOYMENT_calculated ~  QS3_4_LIFEEVENTS1_11_
                             mentor_6to18 +
                             QS2_6_MENTOREXPER + 
                             QS1_1_AGE + 
+                           QS1_22_HIGHESTEDU+
                             mentor_6to18 * QS3_4_LIFEEVENTS1_11_11_X1 + 
                             mentor_6to18 * QS3_4_LIFEEVENTS1_16_16_X1 + 
                             mentor_6to18 * QS3_4_LIFEEVENTS1_18_18_X1,
@@ -129,6 +149,8 @@ lasso_coefs <- tidy(lasso_fit) %>%
 
 # View top 10 important features
 lasso_coefs %>% slice_head(n = 10)
+  
+# LASSO removed all variables
 ```
 
 ```{r}
@@ -143,10 +165,9 @@ recipe_2 <- recipe(QS1_28_EMPLOYMENT_calculated ~ QS3_4_LIFEEVENTS1_11_11_X1 +
   step_log(QS1_28_EMPLOYMENT_calculated, base = 10) |>
   step_interact(~ mentor_6to18:QS3_4_LIFEEVENTS1_11_11_X1 +
                   mentor_6to18:QS3_4_LIFEEVENTS1_16_16_X1 +
-                  mentor_6to18:QS3_4_LIFEEVENTS1_18_18_X1 +
-                  QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_11_11_X1 +
-                  QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_16_16_X1 +
-                  QS2_6_MENTOREXPER:QS3_4_LIFEEVENTS1_18_18_X1)
+                  mentor_6to18:QS3_4_LIFEEVENTS1_18_18_X1) |>
+        step_naomit(QS1_28_EMPLOYMENT_calculated) |>
+        step_naomit(all_predictors())
 
 lasso_spec <- linear_reg(penalty = tune(), mixture = 0) %>%  # mixture = 1 for LASSO, 0 for Ridge
               set_engine("glmnet")

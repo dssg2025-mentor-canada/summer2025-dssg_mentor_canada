@@ -1,0 +1,249 @@
+---
+title: Remove `Prefer not to say`, `Unsure`, or `No` nominal column responses 
+subtitle: On the scaled-ordinal-column un-imputed training set
+date: 2025-06-30
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+```{r}
+#| warning: false
+library(tidyr)
+library(dplyr)
+library(readr)
+library(arrow)
+set.seed(512)
+```
+
+```{r}
+unimpted_normalized_train <- read_csv("../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_train.csv")
+unimpted_normalized_test <- read_csv("../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_test.csv")
+```
+
+## Examine new one-hot encoded columns:
+
+Task 1: Let's look at how many new one-hot encoded columns contain `*_PreferNotToSay`, `*_Unsure`, and `*_Other` endings, which need to be removed.
+
+Task 2: Also look at how many new ohe'd columns contain the ending of: `*_No` and numeric encoding for `*_PreferNotToSay`, `*_Unsure`, and `*_Other.`
+
+#### Remove `*_PreferNotToSay`, `*_Prefer.not.to.answer`, `*_Unsure`, and `*_Other`:
+
+```{r}
+unimpted_normalized_train |> 
+select((ends_with(c("_PreferNotToSay", "_Prefer.not.to.say", "_Prefer.not.to.answer", "_Unsure", "_Other")))) |>
+ncol()
+
+```
+
+> Both imputed and unimputed OHE'd train datasets output 24, meaning there are 24 columns of "\*\_PreferNotToSay", "\_Unsure", "\_Other".
+
+```{r}
+# Removals (train):
+unimpted_normalized_train <- unimpted_normalized_train |> 
+  select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
+# Removals (test):
+unimpted_normalized_test <- unimpted_normalized_test |> 
+  select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
+
+```
+
+#### Remove `*_No`
+
+```{r}
+unimpted_normalized_train |> 
+select((contains(c("_No")))) |>
+ncol() 
+unimpted_normalized_test |> 
+select((ends_with(c("_No")))) |>
+ncol() 
+
+```
+
+> Both imputed and unimputed OHE'd train datasets output 38, meaning there are 38 columns of "\*\_No".
+
+```{r}
+# Removals (train):
+unimpted_normalized_train <- unimpted_normalized_train |> 
+  select(-(contains(c("_No"))))
+
+# Removals (test):
+unimpted_normalized_test <- unimpted_normalized_test |> 
+  select(-(contains(c("_No"))))
+
+```
+
+#### Remove numerically encoded `*_PreferNotToSay`, `*_Unsure`, `*_Other`, and `*_No`:
+
+> #### `_PreferNotToSay`: For convenience, we sometimes use 'pnts' short for Prefer Not to Say.
+
+```{r}
+# >=2 is no/unsure/pnts:
+cat_unsure_pnts_2_or_more <- c("QS1_5_INDIGENOUSHS", "QS1_17_INCARE", "QS1_27_PLANNINGRE", 
+                               "QS2_5_MENTOR611PR", "QS2_7_MENTOR611SE", "QS2_11_MENTOR1218",
+                               'QS2_22_GEOLOCATI1', 'QS2_22_GEOLOCATI2', 'QS2_22_GEOLOCATI3', 
+                               'QS3_4_LIFEEVENTS1_1_1', 'QS3_4_LIFEEVENTS1_2_2', 'QS3_4_LIFEEVENTS1_3_3', 
+                               'QS3_4_LIFEEVENTS1_4_4', 'QS3_4_LIFEEVENTS1_5_5', 'QS3_4_LIFEEVENTS1_6_6', 
+                               'QS3_4_LIFEEVENTS1_7_7', 'QS3_4_LIFEEVENTS1_8_8', 'QS3_4_LIFEEVENTS1_9_9', 
+                               'QS3_4_LIFEEVENTS1_10_10', 'QS3_4_LIFEEVENTS1_11_11', 'QS3_4_LIFEEVENTS1_12_12', 
+                               'QS3_4_LIFEEVENTS1_13_13', 'QS3_4_LIFEEVENTS1_14_14', 'QS3_4_LIFEEVENTS1_15_15', 
+                               'QS3_4_LIFEEVENTS1_16_16', 'QS3_4_LIFEEVENTS1_17_17', 'QS3_4_LIFEEVENTS1_18_18', 
+                               'QS3_4_LIFEEVENTS1_19_19', 'QS3_4_LIFEEVENTS1_20_20',  'QS4_6_DISAPPOINTED', 
+                               'QS4_13_LIFEEVE1_1_1', 'QS4_13_LIFEEVE1_2_2', 'QS4_13_LIFEEVE1_3_3',
+                               'QS4_13_LIFEEVE1_4_4', 'QS4_13_LIFEEVE1_5_5', 'QS4_13_LIFEEVE1_6_6', 
+                               'QS4_16_FORMALVOL', 'QS4_26_INTERNETC', 
+                               'QS4_28_INTERNETCON', 'QS4_31_MOBILECONNE', 'QS4_33_MOBILECONNECT')
+  
+
+cat_unsure_pnts_3 <- c("QS4_1_MEANINGFULPERSON",
+                       "QS4_21_MENTORING",
+                      "QS4_29_PRIVATECONN"
+                    )  # >=3 is no/unsure/pnts
+
+cat_unsure_pnts_4 <- c("QS4_22_PASTMENTO",
+                       "QS2_17_TYPE_1", 
+                       "QS2_17_TYPE_2",
+                       "QS2_17_TYPE_3",
+                       "QS2_18_LOCATION_1",
+                       "QS2_18_LOCATION_2", 
+                       "QS2_18_LOCATION_3",
+                      "QS4_30_INTERNETCON")   # >=4 is unsure/pnts
+
+
+cat_unsure_pnts_11 <- c("QS4_4_EDUCATIONALEXPEC")  # >=X11 is unsure/pnts
+
+cat_X0_no <- c("QS4_27_INTERNETC1_1_1", "QS4_27_INTERNETC1_2_2", "QS4_27_INTERNETC1_3_3", "QS4_27_INTERNETC1_4_4", "QS4_32_MOBILECONNE1_1_1", "QS4_32_MOBILECONNE1_2_2", "QS4_32_MOBILECONNE1_3_3", "QS4_32_MOBILECONNE1_4_4")
+
+
+# *** also need to remove QS4_30_INTERNETCON_X2 independently
+
+```
+
+> -   Variables listed in `cat_unsure_pnts_3_or_more` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 3` and `Prefer not to say = 4`.
+>
+> -   Variables listed in `cat_unsure_pnts_4` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 4` and/or `Prefer not to say = 5`.
+>
+> -   Variables listed in `cat_unsure_pnts_11` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 11` and `Prefer not to say = 12`.
+>
+> -   Internet access variables listed in `cat_internet_access` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 3` and `Prefer not to say = 4`.
+
+```{r}
+# Removal of cat_unsure_pnts_3_or_more (train)
+
+unimpted_normalized_train <- unimpted_normalized_train |>
+  select(-matches(paste0(
+    "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
+    "(", paste(cat_unsure_pnts_3, collapse = "|"), ")_(X3|X4|X5)$|",
+    "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$|",
+    "(", paste(cat_X0_no, collapse = "|"), ")_(X0)$|",
+    "QS4_30_INTERNETCON_X2"
+  )))
+
+unimpted_normalized_train <- unimpted_normalized_train |> 
+  select(-(ends_with(c("X_11")))) # cat_unsure_pnts_11
+
+
+# Verify removal:
+remaining_cols <- colnames(unimpted_normalized_train)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(unimpted_normalized_train))]
+
+if (length(remaining_cols) > 0) {
+  message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
+  print(remaining_cols)
+} else {
+  message("All specified _X0, _X2, _X3, _X4, _X5, _X11, and _X_11 columns were successfully removed.") # correct!~
+}
+
+```
+
+```{r}
+# Removal of cat_unsure_pnts_3_or_more (test)
+
+unimpted_normalized_test <- unimpted_normalized_test |>
+  select(-matches(paste0(
+    "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
+    "(", paste(cat_unsure_pnts_3, collapse = "|"), ")_(X3|X4|X5)$|",
+    "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$|",
+    "(", paste(cat_X0_no, collapse = "|"), ")_(X0)$|",
+    "QS4_30_INTERNETCON_X2"
+  )))
+
+unimpted_normalized_test <- unimpted_normalized_test |> 
+  select(-(ends_with(c("X_11")))) # cat_unsure_pnts_11
+
+
+# Verify removal:
+remaining_cols <- colnames(unimpted_normalized_test)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(unimpted_normalized_test))]
+
+if (length(remaining_cols) > 0) {
+  message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
+  print(remaining_cols)
+} else {
+  message("All specified _X0, _X2, _X3, _X4, _X5, _X11, and _X_11 columns were successfully removed.") # correct!~
+}
+
+```
+
+### Remove Possible Dependent Variables of Interest
+
+-   **Data leakage** is the idea of inadvertently disclosing (or leaking) information about the dependent outcome variables (or the testing data set) to predictor variables in the training set. If we allow the outcome variables to exert antecedent influences on their predictors, and subsequently use the very same predictors to predict those outcome variables, we would end up in a circular reasoning fallacy, and this can lead to falsely inflated relationship between predictors and outcomes.
+
+-   To avoid data leakage, we need to carefully remove all possible dependent variables we might use as outcomes, especially BEFORE we perform KNN imputation.
+
+    -   KNN imputation assess the relationship between variables to approximate missing values. If dependent variables (DVs) are included, imputed values for the independent variables (IVs) will be influenced by the DVs, leading to biased relationship between the IV and the DV.
+
+-   Decision: We will passthrough the possible DVs during the KNN imputation pipeline in python.
+
+```{r}
+#| output: false
+
+# (train)
+unimpted_normalized_train |>
+select(starts_with(c('QS1_19_HIGHSCHOOL', 'QS4_19_CURRENTME', 'QS4_18_CURRENTOR', 
+                            'QS1_20_HIGHSCHOOL', 'QS1_21_FURTHEDUCA', 'QS1_22_HIGHESTEDU', 
+                            'QS1_23_YEARCOMPLE', 'QS1_25_EMPLOYMENT', 'QS1_26_EMPLOYMENT',
+                            'QS1_27_PLANNINGRE',  'QS1_28_EMPLOYMENT', 'QS4_4_EDUCATIONALEXPEC', 
+                            'QS4_5_SATEDU','QS4_6_DISAPPOINTED', # these are self-motivation variable.
+                            'QS4_7_SOCIALCAPITAL', 'QS4_8_HELPSEEKING', 'QS4_9_MENTALHEALTH',
+                            'QS4_10_MENTALWELLBE', 'QS4_11_BELONGING', 'QS4_12_TRUST',
+                            'QS4_16_FORMALVOL', 'QS4_25_FUTUREMEN', 'QS4_21_MENTORING',
+                            'QS4_17_SERVEDASM', 'QS4_18_CURRENTOR', 'QS4_22_PASTMENTO', 
+                            'QS4_1_MEANINGFULPERSON', 'QS4_13_LIFEEVE'))) |>
+summarize(across(everything(), ~sum(is.na(.)))) |>
+glimpse()
+```
+
+```{r}
+#| output: false
+
+# (test)
+unimpted_normalized_test |>
+select(starts_with(c('QS1_19_HIGHSCHOOL', 'QS4_19_CURRENTME', 'QS4_18_CURRENTOR', 
+                            'QS1_20_HIGHSCHOOL', 'QS1_21_FURTHEDUCA', 'QS1_22_HIGHESTEDU', 
+                            'QS1_23_YEARCOMPLE', 'QS1_25_EMPLOYMENT', 'QS1_26_EMPLOYMENT',
+                            'QS1_27_PLANNINGRE',  'QS1_28_EMPLOYMENT', 'QS4_4_EDUCATIONALEXPEC', 
+                            'QS4_5_SATEDU','QS4_6_DISAPPOINTED', # these are self-motivation variable.
+                            'QS4_7_SOCIALCAPITAL', 'QS4_8_HELPSEEKING', 'QS4_9_MENTALHEALTH',
+                            'QS4_10_MENTALWELLBE', 'QS4_11_BELONGING', 'QS4_12_TRUST',
+                            'QS4_16_FORMALVOL', 'QS4_25_FUTUREMEN', 'QS4_21_MENTORING',
+                            'QS4_17_SERVEDASM', 'QS4_18_CURRENTOR', 'QS4_22_PASTMENTO', 
+                            'QS4_1_MEANINGFULPERSON', 'QS4_13_LIFEEVE'))) |>
+summarize(across(everything(), ~sum(is.na(.)))) |>
+glimpse()
+```
+
+# Data frame export:
+
+#### Export train/test data sets
+
+```{r}
+write_feather(unimpted_normalized_train, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_train.feather") 
+write_csv(unimpted_normalized_train, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_train.csv") 
+
+write_feather(unimpted_normalized_test, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_test.feather") 
+write_csv(unimpted_normalized_test, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_test.csv") 
+```
+
+## Next step: Impute NA values with KNN using Python faiss package

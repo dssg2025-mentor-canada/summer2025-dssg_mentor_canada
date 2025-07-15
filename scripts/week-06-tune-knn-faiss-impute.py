@@ -42,7 +42,7 @@ def preprocess_data(df, missing_threshold=0.90, passthrough_prefixes=None):
         high_missing_cols = missing_rates[missing_rates > missing_threshold].index
         if len(high_missing_cols) > 0:
             logging.warning(f"Dropping {len(high_missing_cols)} columns with >{missing_threshold*100}% missing values: {high_missing_cols}")
-            df = df.drop(columns=high_missing_cols)
+            # df = df.drop(columns=high_missing_cols) # **** this drops 100% missingness columns -- uncomments to use (commented out due to causing incomsistency between train/test)
         data = df.values
         feature_cols = df.columns
         logging.info("Data preprocessing completed.")
@@ -227,8 +227,13 @@ def tune_k(data, feature_cols, passthrough_data, reliable_features, k_values=[5,
     
 # Main workflow
 def main():
-    file_path = '../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather'
-    output_path = '../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_dataset.csv'
+    file_path = "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_train.feather" # uncomment this if want to impute the nomalized-ordinals data
+    # file_path = '../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather'
+    output_path = '../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_train.csv'
+
+    # file_path = "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_test.feather"
+    # output_path = '../../dssg-2025-mentor-canada/Data/faiss_tuned_knn_imputed_test.csv'
+
     missing_threshold = 0.97
     k_values = [5, 10, 20, 40, 60]
     
