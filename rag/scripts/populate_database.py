@@ -5,9 +5,11 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from get_embedding_function import get_embedding_function
-from langchain_chroma import Chroma
+from langchain.vectorstores import Chroma
+# to iterate over multiple PDF files
+from glob import glob
 
-DATA_PATH = "rag/rag_data/*.pdf"
+DATA_PATH = glob("rag/processed_pdfs/*.pdf")
 CHROMA_PATH = "rag/chroma"
 
 def main():
@@ -53,10 +55,13 @@ def main():
 #     print(f"Loaded {len(all_docs)} documents.")
 #     return all_docs
 def load_documents():
-    loader = PyPDFLoader(DATA_PATH)
-    pages = loader.load()
-    print(f"{pages[0].metadata}\n")
-    print(pages[0].page_content)
+    all_docs = []
+    for path in DATA_PATH:
+        loader = PyPDFLoader(path)
+        docs = loader.load()
+        all_docs.extend(docs)
+    print(f"Loaded {len(all_docs)} pages from {len(DATA_PATH)} PDFs")
+    return all_docs
 
 
 # def split_documents(documents: list [Document]):
