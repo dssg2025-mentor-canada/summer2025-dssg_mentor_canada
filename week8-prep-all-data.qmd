@@ -1,0 +1,1040 @@
+---
+title: Transform entire data to clean up all classical stats
+date: 2025-07-04
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+```{r}
+#| echo: false
+#| warning: false
+#| output: false
+library(tidymodels)
+library(tidyverse)
+library(knitr)
+library(arrow)
+
+library(car)
+library(interactions)
+library(glmnet)
+library(xgboost)
+
+set.seed(512) # Set seed to ensure code result reproducibility for randomization
+```
+
+```{r}
+#| output: false
+youth_orig <- read_csv("../../dssg-2025-mentor-canada/Data/encodedselectall.csv")
+
+head(youth_orig)
+```
+
+#### Ensure all postal code are in proper upper cases:
+
+```{r}
+youth_orig$geo_postcode_fsa <- toupper(youth_orig$geo_postcode_fsa)
+```
+
+### Remove pre-processed column (binarized) by previous researchers
+
+```{r}
+youth <- youth_orig |>
+select(-c(QS1_8_NEWCOMERYEAR_cat:Week_income)) 
+
+youth <- youth |>
+select(-c(QS2_16_FORMAT_any:total_yearly_income))
+```
+
+### Count proportion of empty entries per variable:
+
+```{r}
+n <- youth |> nrow()
+
+na_count_table <- youth |> summarize_all(~sum(is.na(.))) |>
+                    pivot_longer(cols = everything(), names_to = "columns", values_to = "na_count") |>
+                    mutate(na_percent = na_count / n * 100,
+                           non_na_entries = n - na_count)
+
+na_count_70_percent <- na_count_table |> filter(na_percent >= 70)
+head(na_count_70_percent)
+
+```
+
+> **176** variables have \>= 70% empty NA entries.
+
+#### Identify highly sparse column (number of entries \< 30):
+
+```{r}
+#| output: false
+cols_less_than_30_entires <- na_count_table |>
+                             filter(non_na_entries < 30)
+print(cols_less_than_30_entires, n = nrow(cols_less_than_30_entires))
+cols_less_than_30_entires$columns
+
+cols_less_than_90_percent <- na_count_table |>
+                             filter(na_percent >= 90)
+print(cols_less_than_90_percent, n = nrow(cols_less_than_90_percent))
+cols_less_than_90_percent$columns
+```
+
+### Remove Irrelevant Columns:
+
+```{r}
+youth <- youth |>
+
+# Remove text columns:
+select(-c("QS2_25_YOUTHINIT1", "QS2_29_MATCHCRITERIA_O", "QS2_39_2_Other",  
+          "QS4_23_PASTFORMA1", "QS2_39_1_Other", "QS2_39_3_Other")) |> 
+
+# Remove columns with <30 valid entries:
+select(-any_of(cols_less_than_30_entires$columns)) |>
+
+# Remove repeated income columns:
+select(-c("QS1_29_EMPLOYMENT", "QS1_30_EMPLOYMENT1", "QS1_30_EMPLOYMENT2", 
+          "QS1_31_EMPLOYMENT", "QS1_32_WEEKLY")) |> 
+
+# These columns were selected out in other files, so any_of() is used:
+select(-any_of(c("QS2_15_RELATIONSHIP1", "QS2_5_Other", "QS2_17_TYPE_1_Other"))) |> 
+
+# Take out postal code--it will be useful only when building geospatial plot:
+select(-geo_postcode_fsa) |> 
+
+# Text column: Name of organization with with respondent served as a mentor
+select(-c("QS4_19_CURRENTME1", "QS4_19_CURRENTME2", "QS4_19_CURRENTME3")) |>
+
+# Text column: name of mentor organization, else unsure (QS4_23_PASTFORMA2) or prefer not say (QS4_23_PASTFORMA3):
+select(-c('QS4_23_PASTFORMA2', 'QS4_23_PASTFORMA3')) |> 
+
+# This is an 'other' column for text written response:
+select(-any_of(c("QS2_34_SUPPORTS1_10_10"))) |> 
+
+# text entry:
+select(-any_of(c("QS2_26_INITIATIONEV"))) |> 
+
+# whether respondent remembered name of organization:
+select(-any_of(c("QS2_27_MENTORPROGRA1")))
+
+
+```
+
+#### Remove `Prefer not to answer` / `Don't know` responses in the following ordinal items:
+
+-   `QS4_9_MENTALHEALTH`
+
+    -   `"Don’t know"`
+
+    -   `"Prefer not to answer"`
+
+-   `QS4_11_BELONGING`
+
+    -   `"Don’t know"`
+
+    -   `"Prefer not to answer"`
+
+-   `QS4_20_MENTEEAGE`
+
+    -   `"Unsure"`
+
+    -   `"Prefer not to say"`
+
+```{r}
+#| output: false
+nrow(youth) # 2838
+youth <- youth |>
+  filter(!QS4_9_MENTALHEALTH %in% c("Don’t know", "Prefer not to answer"), # ordinal
+         !QS4_11_BELONGING %in% c("Don’t know", "Prefer not to answer"), # ordinal
+         !QS4_20_MENTEEAGE %in% c("Unsure", "Prefer not to say")) # ordinal
+nrow(youth) # 2396
+
+```
+
+```{r}
+#| warning: false
+# Responses containing "Unsure"
+unsure_counts <- tidy(colSums(youth == "Unsure", na.rm = TRUE))|>
+                  mutate(is_unsure = ifelse(x >= 1, TRUE, FALSE)) |>
+                    filter(`is_unsure` == "TRUE") 
+# Responses containing "Prefer not to say"
+pns_counts <- tidy(colSums(youth == "Prefer not to say", na.rm = TRUE))|>
+                  mutate(is_unsure = ifelse(x >= 1, TRUE, FALSE)) |>
+                    filter(`is_unsure`== "TRUE")
+```
+
+```{r}
+head(unsure_counts)
+head(pns_counts)
+```
+
+## metrics columns:
+
+```{r}
+# metric variables, not including outcome `QS1_25_EMPLOYMENT`
+metric_vars <- c("QS1_1_AGE", "QS1_8_NEWCOMERYEAR", "QS1_14_DISABIL", "QS1_15_DISABIL", 'QS1_18_PARENTEDUC1', 'QS1_18_PARENTEDUC2', "QS1_20_HIGHSCHOOL", "QS1_23_YEARCOMPLE", "QS2_10_NUMBEROFME", "QS4_15_TIMEIFFOR1", "QS4_15_TIMEIFFOR2", "QS4_15_TIMEIFFOR3", "QS4_15_TIMEIFFOR4",  "QS4_12_TRUST1_1_1", "QS4_12_TRUST1_2_2", "QS4_12_TRUST1_3_3", "QS4_12_TRUST1_4_4", "QS4_12_TRUST1_5_5", "QS4_14_FORMALVOL", "QS1_28_EMPLOYMENT_calculated") 
+```
+
+## Convert all categorical columns into factor data type
+
+1.  Identify categorical columns:
+
+```{r}
+cate_vars <- c("QS1_2_PROV", "QS1_3_COMMUNITYTYPE", "QS1_4_INDIGENOUS", 
+               "QS1_5_INDIGENOUSHS", 
+               "QS1_7_NEWCOMER", "QS1_10_TRANSUM", "QS1_11_SEXUALO", "QS1_12_DISABIL", "QS1_13_DISABIL", 
+               "QS1_17_INCARE",  
+               "QS1_19_HIGHSCHOOL", "QS1_21_FURTHEDUCA", "QS1_25_EMPLOYMENT", 
+              "QS1_27_PLANNINGRE", 
+              "QS1_28_EMPLOYMENT", "QS2_1_MEANINGFULP", "QS2_2_MEANINGFULP", "QS2_3_PRESENCEOFM", "QS2_4_MENTOR61FOR", 
+              "QS2_5_MENTOR611PR", 
+               "QS2_7_MENTOR611SE", "QS2_8_UNMETNEED61", "QS2_9_PRESENCEOFA", "QS2_11_MENTOR1218",  "QS2_12_UNMETNEED1", "QS2_16_FORMAT_1", "QS2_17_TYPE_1", "QS2_18_LOCATION_1", 
+               "QS2_22_GEOLOCATI1", 
+               "QS2_16_FORMAT_2", "QS2_17_TYPE_2", "QS2_18_LOCATION_2", 
+               "QS2_22_GEOLOCATI2", 
+               "QS2_16_FORMAT_3", "QS2_17_TYPE_3", "QS2_18_LOCATION_3", 
+               "QS2_22_GEOLOCATI3",
+               "QS2_23_MOSTMEANI", "QS2_24_MENTORAGE", 
+              # "QS2_26_INITIATIONEV", # *Removed due to having 99.7% NA entries.
+               
+              # "QS2_27_MENTORPROGRA1", # Removed because it asks for 'recall of the name of mentor organization'
+              "QS2_28_MATCHCHOICE", "Match_GenderIdentity", "Match_Ethnicity", "Match_CulturalBackground", "Match_ScheduleAvailability", "Match_Interests", "Match_Goals", "Match_Personalities", "Match_LifeStruggles", "Transition_School", "Transition_NewSchool", "Transition_NewCommunity", "Transition_GettingDriversLicense", "Transition_JobAspirations", "Transition_GettingFirstJob", "Transition_ApplyingToTradeSchool-Collge-Uni", "Transition_IndependenceFromGuardian", "Transition_FundingForTradeSchool-Collge-Uni", "Transition_NoneOfAbove",  "QS2_33_TRANSITIONS1_13_13", "QS2_33_TRANSITIONS1_14_14",  "QS3_4_LIFEEVENTS1_1_1", "QS3_4_LIFEEVENTS1_2_2", "QS3_4_LIFEEVENTS1_3_3", "QS3_4_LIFEEVENTS1_4_4", "QS3_4_LIFEEVENTS1_5_5", "QS3_4_LIFEEVENTS1_6_6", "QS3_4_LIFEEVENTS1_7_7", "QS3_4_LIFEEVENTS1_8_8", "QS3_4_LIFEEVENTS1_9_9", "QS3_4_LIFEEVENTS1_10_10", "QS3_4_LIFEEVENTS1_11_11", "QS3_4_LIFEEVENTS1_12_12", "QS3_4_LIFEEVENTS1_13_13", "QS3_4_LIFEEVENTS1_14_14", "QS3_4_LIFEEVENTS1_15_15", "QS3_4_LIFEEVENTS1_16_16", "QS3_4_LIFEEVENTS1_17_17", "QS3_4_LIFEEVENTS1_18_18", "QS3_4_LIFEEVENTS1_19_19", "QS3_4_LIFEEVENTS1_20_20", "QS4_1_MEANINGFULPERSON",  # adult mentor
+              "QS4_4_EDUCATIONALEXPEC", "QS4_6_DISAPPOINTED",  "QS4_13_LIFEEVE1_1_1", "QS4_13_LIFEEVE1_2_2", "QS4_13_LIFEEVE1_3_3", "QS4_13_LIFEEVE1_4_4", "QS4_13_LIFEEVE1_5_5", "QS4_13_LIFEEVE1_6_6",  "QS4_16_FORMALVOL", "QS4_17_SERVEDASM", "QS4_18_CURRENTOR", 
+    "QS4_21_MENTORING", "QS4_22_PASTMENTO",  "QS4_25_FUTUREMEN",
+    
+"QS4_26_INTERNETC", "QS4_27_INTERNETC1_1_1", "QS4_27_INTERNETC1_2_2", "QS4_27_INTERNETC1_3_3", "QS4_27_INTERNETC1_4_4", "QS4_28_INTERNETCON", "QS4_29_PRIVATECONN", "QS4_30_INTERNETCON", "QS4_31_MOBILECONNE", "QS4_32_MOBILECONNE1_1_1", "QS4_32_MOBILECONNE1_2_2", "QS4_32_MOBILECONNE1_3_3", "QS4_32_MOBILECONNE1_4_4", "QS4_33_MOBILECONNECT"
+    )
+```
+
+2.  Convert into factors:
+
+```{r}
+youth <- youth |>
+  mutate(across(all_of(cate_vars), as_factor))
+```
+
+## Ordinal columns:
+
+### Identify Likert scale items columns (ordinal)
+
+```{r}
+ordinal_numeric_vars <- c("QS2_19_DURATION_1", "QS2_20_EXPERIENCE_1", "QS2_19_DURATION_2", "QS2_20_EXPERIENCE_2", "QS2_19_DURATION_3", "QS2_20_EXPERIENCE_3", "QS2_30_MATCHSIMILAR1_1_1", "QS2_30_MATCHSIMILAR1_2_2", "QS2_30_MATCHSIMILAR1_3_3", "QS2_30_MATCHSIMILAR1_4_4", "QS2_30_MATCHSIMILAR1_5_5", "QS2_31_MENTORINGREL1_1_1", "QS2_31_MENTORINGREL1_2_2", "QS2_31_MENTORINGREL1_3_3", "QS2_31_MENTORINGREL1_4_4", "QS2_31_MENTORINGREL1_5_5", "QS2_32_MENTORINGENG1_1_1", "QS2_32_MENTORINGENG1_2_2", "QS2_32_MENTORINGENG1_3_3", "QS2_32_MENTORINGENG1_4_4", "QS2_32_MENTORINGENG1_5_5", "QS2_32_MENTORINGENG1_6_6", "QS2_32_MENTORINGENG1_7_7", "QS2_32_MENTORINGENG1_8_8", "QS2_32_MENTORINGENG1_9_9", "QS2_32_MENTORINGENG1_10_10", "QS2_32_MENTORINGENG1_11_11", "QS2_32_MENTORINGENG1_12_12", "QS2_32_MENTORINGENG1_13_13", "QS2_32_MENTORINGENG1_14_14", "QS2_32_MENTORINGENG1_15_15", "QS2_32_MENTORINGENG1_16_16", "QS2_32_MENTORINGENG1_17_17", "QS2_32_MENTORINGENG1_18_18", "QS2_32_MENTORINGENG1_19_19", "QS2_32_MENTORINGENG1_20_20", "QS2_32_MENTORINGENG1_21_21", "QS2_32_MENTORINGENG1_22_22", "QS2_35_SUPPORTSIMPO1_1_1", "QS2_35_SUPPORTSIMPO1_2_2", "QS2_35_SUPPORTSIMPO1_3_3", "QS2_35_SUPPORTSIMPO1_4_4", "QS2_35_SUPPORTSIMPO1_5_5", "QS2_35_SUPPORTSIMPO1_6_6", "QS2_35_SUPPORTSIMPO1_7_7", "QS2_35_SUPPORTSIMPO1_8_8", "QS2_35_SUPPORTSIMPO1_9_9", "QS2_35_SUPPORTSIMPO1_10_10", "QS2_37_HELPFULNESS", 
+# "QS_40_REMATCHING_2", "QS_40_REMATCHING_3", 
+"QS3_1_GLOBALSELFWOR1_1_1", "QS3_1_GLOBALSELFWOR1_2_2", "QS3_1_GLOBALSELFWOR1_3_3", "QS3_1_GLOBALSELFWOR1_4_4", "QS3_1_GLOBALSELFWOR1_5_5", "QS3_1_GLOBALSELFWOR1_6_6", "QS3_1_GLOBALSELFWOR1_7_7", "QS3_1_GLOBALSELFWOR1_8_8", "QS3_5_SCHOOLCLIMATE1_1_1", "QS3_5_SCHOOLCLIMATE1_2_2", "QS3_5_SCHOOLCLIMATE1_3_3", "QS3_5_SCHOOLCLIMATE1_4_4", "QS3_5_SCHOOLCLIMATE1_5_5", "QS3_5_SCHOOLCLIMATE1_6_6", "QS3_5_SCHOOLCLIMATE1_7_7", "QS3_5_SCHOOLCLIMATE1_8_8", "QS3_5_SCHOOLCLIMATE1_9_9", "QS3_5_SCHOOLCLIMATE1_10_10", "QS4_2_MEANINGFULPERSON",    "QS4_8_HELPSEEKING1_1_1", "QS4_8_HELPSEEKING1_2_2", "QS4_8_HELPSEEKING1_3_3", "QS4_8_HELPSEEKING1_4_4", "QS4_8_HELPSEEKING1_5_5", "QS4_8_HELPSEEKING1_6_6", "QS4_8_HELPSEEKING1_7_7", "QS4_8_HELPSEEKING1_8_8", "QS4_8_HELPSEEKING1_9_9", "QS4_8_HELPSEEKING1_10_10", "QS4_10_MENTALWELLBE1_1_1", "QS4_10_MENTALWELLBE1_2_2", "QS4_10_MENTALWELLBE1_3_3", "QS4_10_MENTALWELLBE1_4_4", "QS4_10_MENTALWELLBE1_5_5", "QS4_10_MENTALWELLBE1_6_6", "QS4_10_MENTALWELLBE1_7_7",
+
+'QS4_12_TRUST1_1_1', 'QS4_12_TRUST1_2_2', 'QS4_12_TRUST1_3_3', 'QS4_12_TRUST1_4_4', 'QS4_12_TRUST1_5_5'
+
+                          ) 
+
+ordinal_chr_vars <- c("QS1_22_HIGHESTEDU", "QS2_6_MENTOREXPER", "QS2_34_SUPPORTS1_1_1", "QS2_34_SUPPORTS1_2_2", "QS2_34_SUPPORTS1_3_3", "QS2_34_SUPPORTS1_4_4", "QS2_34_SUPPORTS1_5_5", "QS2_34_SUPPORTS1_6_6", "QS2_34_SUPPORTS1_7_7", "QS2_34_SUPPORTS1_8_8", "QS2_34_SUPPORTS1_9_9", "QS2_36_INFLUENCE1_1_1", "QS2_36_INFLUENCE1_2_2", "QS2_36_INFLUENCE1_3_3", "QS2_36_INFLUENCE1_4_4", "QS2_36_INFLUENCE1_5_5", "QS2_36_INFLUENCE1_6_6", "QS2_36_INFLUENCE1_7_7", "QS2_36_INFLUENCE1_8_8", "QS2_36_INFLUENCE1_9_9", "QS4_3_CAREERPLANNIN1_1_1", "QS4_3_CAREERPLANNIN1_2_2", "QS4_3_CAREERPLANNIN1_3_3", "QS4_3_CAREERPLANNIN1_4_4", "QS4_3_CAREERPLANNIN1_5_5", "QS4_3_CAREERPLANNIN1_6_6", "QS4_3_CAREERPLANNIN1_7_7", "QS4_3_CAREERPLANNIN1_8_8",  "QS4_5_SATEDU", "QS4_7_SOCIALCAPITAL1_1_1", "QS4_7_SOCIALCAPITAL1_2_2", "QS4_7_SOCIALCAPITAL1_3_3", "QS4_7_SOCIALCAPITAL1_4_4","QS4_9_MENTALHEALTH",  "QS4_11_BELONGING","QS4_20_MENTEEAGE", "QS4_24_FUTUREMEN")
+```
+
+### Handelling Varied Likert Scale Items: Label Alignment Issue
+
+> Task: Reverse coding for raw ordinal columns with numeric encoding to unify congruency in their valance direction.:
+
+```{r}
+reversed_coding <- youth |>
+                  mutate(# Reverse QS2_19_EXPERIENCE_* (1-5 scale: Always positive to Always negative)
+                         across(matches("^QS2_20_EXPERIENCE_"), ~ 6 - .,  .names = "reversed_{.col}"),
+                      
+                         # Reverse QS3_5_SCHOOLCLIMATE1_*_* (1-4 scale: Strongly Agree to Strongly Disagree)
+                         across(matches("^QS3_5_SCHOOLCLIMATE1_"), ~ 5 - ., .names = "reversed_{.col}"),
+                          # Reverse QS2_37_HELPFULNESS (1-5 scale: Very helpful toNot helpful at all)
+                         across(matches("^QS2_37_HELPFULNESS"), ~ 5 - ., .names = "reversed_{.col}"))
+```
+
+```{r}
+# Validate reversed coding:
+reversed_coding |>
+  select(starts_with("QS2_20_EXPERIENCE_"), starts_with("reversed_QS2_19_EXPERIENCE_"),
+         starts_with("QS3_5_SCHOOLCLIMATE1_"), starts_with("reversed_QS3_5_SCHOOLCLIMATE1_")) %>%
+  head()
+
+```
+
+> `reversed_coding` shows that `reversed_QS2_19_EXPERIENCE_` and `reversed_QS3_5_SCHOOLCLIMATE1_` are successful reverse encoding of `QS2_19_EXPERIENCE_` and `QS3_5_SCHOOLCLIMATE1_`!
+>
+> Now, let's apply the this reverse encoding onto the original `youth` data set, replacing the `QS2_19_EXPERIENCE_` and `QS3_5_SCHOOLCLIMATE1_` directly in the original data frame:
+
+```{r}
+youth <- youth |>
+  mutate(# Reverse QS2_19_EXPERIENCE_* (1-5 scale: Always positive to Always negative)
+         across(matches("^QS2_20_EXPERIENCE_"), ~ 6 - .),
+      
+         # Reverse QS3_5_SCHOOLCLIMATE1_*_* (1-4 scale: Strongly Agree to Strongly Disagree)
+         across(matches("^QS3_5_SCHOOLCLIMATE1_"), ~ 5 - .))
+```
+
+```{r}
+# Once again, validate result:
+youth |>
+  select(starts_with("QS2_20_EXPERIENCE_"), starts_with("QS3_5_SCHOOLCLIMATE1_")) |>
+  head()
+```
+
+### Convert all [string/character]{.underline} Likert scale items columns into [ordinal data type]{.underline}:
+
+```{r}
+youth <- youth |>
+  mutate(across(all_of(ordinal_numeric_vars), as_factor)) # converts ordinal items encoded in either (1) numbers or (2) strings into factor.
+youth <- youth |>
+  mutate(across(all_of(ordinal_chr_vars), as_factor)) 
+```
+
+### Convert [string/character]{.underline} Likert scale level columns into ordered [numeric]{.underline}:
+
+1.  Specify string/character-labeled Likert levels:
+
+```{r}
+experience_ord <- list(levels = 1:5, labels = c("Always negative", "Mostly negative", "Somewhat positive", "Mostly positive", "Always positive"))
+support_ord <- list(levels = 1:3, labels = c("Not very true","Sometimes true","Very true"))
+influence_ord <- list(levels = 1:4, labels = c("A little","Some","Quite a bit","A lot")) # No 'None' in response range
+career_plan_ord <- list(levels = 1:7, labels = c("Completely disagree","Disagree","Somewhat disagree","Unsure","Somewhat agree","Agree","Completely agree"))
+social_capital_ord <- list(levels = 1:5, labels = c("Strongly disagree","Disagree","Neutral","Agree","Strongly Agree"))
+mental_health_ord <- list(levels = 1:5, labels = c("Poor","Fair","Good","Very good", "Excellent")) 
+# "Don't know"  / 'Prefer not to answer' is not included (previously filtered)
+belonging_ord <- list(levels = 1:4, labels = c("Very weak","Somewhat weak","Somewhat strong","Very strong"))
+mentee_age_ord <- list(levels = 1:4, labels = c("Under 18 years old","18-25 years old","26-29 years old","30 years old or older"))
+mentoring_interest_ord <- list(levels = 1:4, labels = c("Not interested at all", "Not that interested","Fairly interested","Very interested"))
+
+high_edu_ord <- list(levels = 1:11, labels = c("Certificate of Apprenticeship or Certificate of Qualification", 
+                                               "Other trades certificate or diploma", 
+                                               "College, CEGEP or other non-university certificate or diploma", 
+                                               "University diploma or certificate BELOW Bachelor’s Degree", 
+                                               "Bachelor’s degree (e.g. BA, BSc, B.Ed., B.Eng including LL.B-law degree)",
+                                               "University diploma or certificate ABOVE Bachelor’s Degree",
+                                               "First professional degree (e.g. medicine, dentistry, veterinary medicine, optometry)", 
+                                               "Master's degree (e.g. M.B.A., M.A., M.Sc.)", 
+                                               "Doctorate degree (earned e.g. Ph.D, D.Sc., D.Ed) or post-doctoral program", 
+                                               "Other, please specify", 
+                                               "Unsure"))
+
+```
+
+2.  Compile all character-labeled Likert items in a list (i.e., a list of list in this case).
+
+```{r}
+lst_of_ord_cols <- list(QS2_6_MENTOREXPER = experience_ord,
+                        
+                        QS2_34_SUPPORTS1_1_1 = support_ord,
+                        QS2_34_SUPPORTS1_2_2 = support_ord,
+                        QS2_34_SUPPORTS1_3_3 = support_ord,
+                        QS2_34_SUPPORTS1_4_4 = support_ord,
+                        QS2_34_SUPPORTS1_5_5 = support_ord,
+                        QS2_34_SUPPORTS1_6_6 = support_ord,
+                        QS2_34_SUPPORTS1_7_7 = support_ord,
+                        QS2_34_SUPPORTS1_8_8 = support_ord,
+                        QS2_34_SUPPORTS1_9_9 = support_ord,
+                        
+                        QS2_36_INFLUENCE1_1_1 = influence_ord,
+                        QS2_36_INFLUENCE1_2_2 = influence_ord,
+                        QS2_36_INFLUENCE1_3_3 = influence_ord,
+                        QS2_36_INFLUENCE1_4_4 = influence_ord,
+                        QS2_36_INFLUENCE1_5_5 = influence_ord,
+                        QS2_36_INFLUENCE1_6_6 = influence_ord,
+                        QS2_36_INFLUENCE1_7_7 = influence_ord,
+                        QS2_36_INFLUENCE1_8_8 = influence_ord,
+                        QS2_36_INFLUENCE1_9_9 = influence_ord,
+                        
+                        QS4_3_CAREERPLANNIN1_1_1 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_2_2 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_3_3 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_4_4 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_5_5 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_6_6 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_7_7 = career_plan_ord,
+                        QS4_3_CAREERPLANNIN1_8_8 = career_plan_ord,
+                        
+                        QS4_7_SOCIALCAPITAL1_1_1 = social_capital_ord,
+                        QS4_7_SOCIALCAPITAL1_2_2 = social_capital_ord,
+                        QS4_7_SOCIALCAPITAL1_3_3 = social_capital_ord,
+                        QS4_7_SOCIALCAPITAL1_4_4 = social_capital_ord,
+                        
+                        QS4_9_MENTALHEALTH = mental_health_ord,
+                        QS4_11_BELONGING = belonging_ord,
+                        QS4_20_MENTEEAGE = mentee_age_ord,
+                        QS4_24_FUTUREMEN = mentoring_interest_ord,
+
+                        
+                        QS1_22_HIGHESTEDU = high_edu_ord,
+                        QS4_5_SATEDU = high_edu_ord)
+```
+
+3.  Write a function to convert all character labels to the correct ordinal numeric scores!
+
+##### Function 1: For converting string type ordinal leveled columns into well-ordered integers:
+
+```{r}
+convert_string_ord_fac <- function(data, lst_ord_level_cols, lst_col_names) {
+ data <- data |>
+  mutate(across(.cols = all_of(lst_col_names),
+                .fns = ~ {
+                  col_name <- cur_column()
+                  scale <- lst_ord_level_cols[[col_name]]
+                  factor(.x, 
+                         levels = scale$labels, # the string lebels are the 'levels'
+                         labels = scale$levels, # now we want the `labels` to be numeric, according to the levels.
+                         ordered = TRUE)}))
+    return(data)}
+```
+
+> Apply above function `convert_ord_fac()`
+
+```{r}
+#| output: false
+youth |> select(all_of(c(ordinal_chr_vars))) |> str() # before conversion
+youth <- convert_string_ord_fac(youth, lst_of_ord_cols, ordinal_chr_vars)
+
+# youth |> select(all_of(c(ordinal_chr_vars))) |> str() # after conversion
+  # Validated! Success!
+```
+
+##### Function 2: For converting numeric type ordinal leveled columns into ordered factor
+
+```{r}
+convert_number_ord_fac <- function(data, lst_col_names) {
+  data[lst_col_names] <- lapply(data[lst_col_names], function(x) {
+    factor(x, levels = sort(unique(x)), ordered = TRUE)
+  })
+  
+  return(data)}
+```
+
+> Apply above Function 2 to `ordinal_numeric_vars`
+
+```{r}
+#| output: false
+youth |> select(all_of(c(ordinal_numeric_vars))) |> str() # before conversion
+
+youth <- convert_number_ord_fac(youth, ordinal_numeric_vars)
+# youth |> select(all_of(c(ordinal_numeric_vars))) |> str() # after conversion
+  # Validated! Another success!
+```
+
+### `Unsure` response entries in ordinal columns:
+
+[**Decision:**]{.underline} We reason that since `Unsure` in the context of this question serve similar to a 'undecided' stance between the two Likert end, we would retain `Unsure` for this ordinal item.
+
+### `Unsure` and `Other, please specify` entries in `QS4_4_EDUCATIONALEXPEC`
+
+-   `Other, please specify` = 10
+
+-   `Unsure` = 11
+
+```{r}
+youth |> 
+  select((ends_with(c("_PreferNotToSay", "_Unsure", "_Other")))) |>
+  ncol() 
+
+# Removal:
+youth <- youth |> 
+  select(-(ends_with(c("_PreferNotToSay", "_Unsure", "_Other"))))
+```
+
+-   There are 21 columns of `*_PreferNotToSay`, `*_Unsure`, or `*_Other` categorical variables, and these columns have been removed.
+
+> No need for data spliting, skip `initial_split()`, `training()`, and `testing`.
+
+## Recipe 1:
+
+#### Ensure rest of the non-OHE nominal columns are OHE'd. No imputation.
+
+1.  OHE all long-form nominal columns.
+2.  Standardize continuous variables (not for now–if needed, comment back in the steps).
+3.  No imputation (raw entries are maintained)
+
+```{r}
+preprocessing_recipe_ohe_unimputed <- recipes::recipe(QS1_28_EMPLOYMENT_calculated ~ ., data = youth) |>
+    step_dummy(all_of(cate_vars), one_hot = TRUE) # |>
+
+    # step_center(all_of(metric_vars)) |>
+    # step_scale(all_of(metric_vars))
+```
+
+```{r}
+#| warning: false
+ohe_unimpute_prep <- preprocessing_recipe_ohe_unimputed |>
+                     prep()
+
+ohe_unimputed_all_data <- bake(ohe_unimpute_prep, new_data = NULL)
+```
+
+> Validate post-ohe, column names are the same between ohe_unimputed_all_data and `ohe_unimputed_normalize_all_data`:
+
+```{r}
+identical(nrow(ohe_unimputed_all_data), nrow(youth))# Outputs TRUE! They are the same!
+nrow(ohe_unimputed_all_data)
+nrow(youth)
+
+```
+
+## Recipe 2:
+
+#### Normalize ordinal columns to range \[1,0\]. OHE, and no imputation
+
+```{r}
+youth_data_numeric <- youth |>
+                      mutate(across(where(is.ordered), as.numeric))
+
+
+preprocessing_recipe_ohe_unimputed_normalize <- recipes::recipe(QS1_28_EMPLOYMENT_calculated ~ ., data = youth_data_numeric) |>
+                            step_dummy(all_of(cate_vars), one_hot = TRUE) |>
+                            step_mutate(across(all_of(c(ordinal_chr_vars, ordinal_numeric_vars)),
+                                             ~ scales::rescale(.x, to = c(0, 1), na.rm = TRUE))) #|> # customize min max ranger
+                          # step_normalize(all_of(metric_vars), na_rm = TRUE)
+```
+
+```{r}
+#| warning: false
+ohe_unimputed_normalize_prep <- preprocessing_recipe_ohe_unimputed_normalize |>
+                                 prep()
+
+ohe_unimputed_normalize_all_data <- bake(ohe_unimputed_normalize_prep, new_data = NULL)
+```
+
+```{r}
+nrow(ohe_unimputed_normalize_all_data)
+```
+
+## Examine new one-hot encoded columns:
+
+Task 1: Let's look at how many new one-hot encoded columns contain `*_PreferNotToSay`, `*_Unsure`, and `*_Other` endings, which need to be removed.
+
+Task 2: Also look at how many new ohe'd columns contain the ending of: `*_No` and numeric encoding for `*_PreferNotToSay`, `*_Unsure`, and `*_Other.`
+
+#### Remove `*_PreferNotToSay`, `*_Prefer.not.to.answer`, `*_Unsure`, and `*_Other`:
+
+```{r}
+ohe_unimputed_all_data |> 
+select((ends_with(c("_PreferNotToSay", "_Prefer.not.to.say", "_Prefer.not.to.answer", "_Unsure", "_Other")))) |>
+ncol()
+
+ohe_unimputed_normalize_all_data |>
+select((ends_with(c("_PreferNotToSay", "_Prefer.not.to.say", "_Prefer.not.to.answer", "_Unsure", "_Other")))) |>
+ncol()
+```
+
+> Both imputed and unimputed OHE'd train datasets output 24, meaning there are 24 columns of "\*\_PreferNotToSay", "\_Unsure", "\_Other".
+
+```{r}
+# Removals (2 sets of all data):
+ohe_unimputed_all_data <- ohe_unimputed_all_data |> 
+  select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
+
+ohe_unimputed_normalize_all_data <- ohe_unimputed_normalize_all_data |> 
+  select(-(ends_with(c("_PreferNotToSay", "_Prefer.not.to.answer", "_Prefer.not.to.say", "_Unsure", "_Other"))))
+
+```
+
+#### Remove `*_No`
+
+```{r}
+ohe_unimputed_all_data |> 
+select((contains(c("_No")))) |>
+ncol() 
+ohe_unimputed_normalize_all_data |> 
+select((ends_with(c("_No")))) |>
+ncol() 
+```
+
+```{r}
+# Removals (train):
+ohe_unimputed_all_data <- ohe_unimputed_all_data |> 
+  select(-(contains(c("_No"))))
+
+ohe_unimputed_normalize_all_data <- ohe_unimputed_normalize_all_data |> 
+  select(-(contains(c("_No"))))
+```
+
+#### Remove numerically encoded `*_PreferNotToSay`, `*_Unsure`, `*_Other`, and `*_No`:
+
+> #### `_PreferNotToSay`: For convenience, we sometimes use 'pnts' short for Prefer Not to Say.
+
+```{r}
+# >=2 is no/unsure/pnts:
+cat_unsure_pnts_2_or_more <- c("QS1_5_INDIGENOUSHS", "QS1_17_INCARE", "QS1_27_PLANNINGRE", 
+                               "QS2_5_MENTOR611PR", "QS2_7_MENTOR611SE", "QS2_11_MENTOR1218",
+                               'QS2_22_GEOLOCATI1', 'QS2_22_GEOLOCATI2', 'QS2_22_GEOLOCATI3', 
+                               'QS3_4_LIFEEVENTS1_1_1', 'QS3_4_LIFEEVENTS1_2_2', 'QS3_4_LIFEEVENTS1_3_3', 
+                               'QS3_4_LIFEEVENTS1_4_4', 'QS3_4_LIFEEVENTS1_5_5', 'QS3_4_LIFEEVENTS1_6_6', 
+                               'QS3_4_LIFEEVENTS1_7_7', 'QS3_4_LIFEEVENTS1_8_8', 'QS3_4_LIFEEVENTS1_9_9', 
+                               'QS3_4_LIFEEVENTS1_10_10', 'QS3_4_LIFEEVENTS1_11_11', 'QS3_4_LIFEEVENTS1_12_12', 
+                               'QS3_4_LIFEEVENTS1_13_13', 'QS3_4_LIFEEVENTS1_14_14', 'QS3_4_LIFEEVENTS1_15_15', 
+                               'QS3_4_LIFEEVENTS1_16_16', 'QS3_4_LIFEEVENTS1_17_17', 'QS3_4_LIFEEVENTS1_18_18', 
+                               'QS3_4_LIFEEVENTS1_19_19', 'QS3_4_LIFEEVENTS1_20_20',  'QS4_6_DISAPPOINTED', 
+                               'QS4_13_LIFEEVE1_1_1', 'QS4_13_LIFEEVE1_2_2', 'QS4_13_LIFEEVE1_3_3',
+                               'QS4_13_LIFEEVE1_4_4', 'QS4_13_LIFEEVE1_5_5', 'QS4_13_LIFEEVE1_6_6', 
+                               'QS4_16_FORMALVOL', 'QS4_26_INTERNETC', 
+                               'QS4_28_INTERNETCON', 'QS4_31_MOBILECONNE', 'QS4_33_MOBILECONNECT'
+                              )
+  
+
+cat_unsure_pnts_3 <- c("QS4_1_MEANINGFULPERSON",
+                       "QS4_21_MENTORING",
+                      "QS4_29_PRIVATECONN"
+                    )  # >=3 is no/unsure/pnts
+
+cat_unsure_pnts_4 <- c("QS4_22_PASTMENTO",
+                       "QS2_17_TYPE_1", 
+                       "QS2_17_TYPE_2",
+                       "QS2_17_TYPE_3",
+                       "QS2_18_LOCATION_1",
+                       "QS2_18_LOCATION_2", 
+                       "QS2_18_LOCATION_3",
+                      "QS4_30_INTERNETCON")   # >=4 is unsure/pnts
+
+
+cat_unsure_pnts_11 <- c("QS4_4_EDUCATIONALEXPEC")  # >=X11 is unsure/pnts
+
+cat_X0_no <- c("QS4_27_INTERNETC1_1_1", "QS4_27_INTERNETC1_2_2", "QS4_27_INTERNETC1_3_3", "QS4_27_INTERNETC1_4_4", "QS4_32_MOBILECONNE1_1_1", "QS4_32_MOBILECONNE1_2_2", "QS4_32_MOBILECONNE1_3_3", "QS4_32_MOBILECONNE1_4_4")
+```
+
+> -   Variables listed in `cat_unsure_pnts_3_or_more` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 3` and `Prefer not to say = 4`.
+>
+> -   Variables listed in `cat_unsure_pnts_4` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 4` and/or `Prefer not to say = 5`.
+>
+> -   Variables listed in `cat_unsure_pnts_11` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 11` and `Prefer not to say = 12`.
+>
+> -   Internet access variables listed in `cat_internet_access` contain `Unsure` and/or `Prefer not to say` at encoding `Unsure = 3` and `Prefer not to say = 4`.
+
+```{r}
+# Removal of cat_unsure_pnts_3_or_more (train)
+
+ohe_unimputed_all_data <- ohe_unimputed_all_data |>
+  select(-matches(paste0(
+    "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
+    "(", paste(cat_unsure_pnts_3, collapse = "|"), ")_(X3|X4|X5)$|",
+    "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$|",
+    "(", paste(cat_X0_no, collapse = "|"), ")_(X0)$|",
+    "QS4_30_INTERNETCON_X2"
+  )))
+
+ohe_unimputed_all_data <- ohe_unimputed_all_data |> 
+  select(-(ends_with(c("X_11")))) # cat_unsure_pnts_11
+
+
+# Verify removal:
+remaining_cols <- colnames(ohe_unimputed_all_data)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(ohe_unimputed_all_data))]
+
+if (length(remaining_cols) > 0) {
+  message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
+  print(remaining_cols)
+} else {
+  message("All specified _X0, _X2, _X3, _X4, _X5, _X11, and _X_11 columns were successfully removed.") # correct!~
+}
+
+```
+
+```{r}
+# Removal of ohe_unimputed_normalize_all_data (train)
+
+ohe_unimputed_normalize_all_data <- ohe_unimputed_normalize_all_data |> 
+  select(-matches(paste0(
+    "(", paste(cat_unsure_pnts_2_or_more, collapse = "|"), ")_(X2|X3|X4)$|",
+    "(", paste(cat_unsure_pnts_3, collapse = "|"), ")_(X3|X4|X5)$|",
+    "(", paste(cat_unsure_pnts_4, collapse = "|"), ")_(X4|X5)$|",
+    "(", paste(cat_X0_no, collapse = "|"), ")_(X0)$|",
+    "QS4_30_INTERNETCON_X2"
+  )))
+
+ohe_unimputed_normalize_all_data <- ohe_unimputed_normalize_all_data |> 
+  select(-(ends_with(c("X_11")))) # cat_unsure_pnts_11
+
+
+# Verify removal:
+remaining_cols <- colnames(ohe_unimputed_normalize_all_data)[grepl("_X0$|_X2$|_X3$|_X4$|_X5$|_X11$|_X_11$", colnames(ohe_unimputed_normalize_all_data))]
+
+if (length(remaining_cols) > 0) {
+  message("Warning: The following columns with _X0, _X2, _X3, _X4, _X5, _X11, or _X_11 remain:")
+  print(remaining_cols)
+} else {
+  message("All specified _X0, _X2, _X3, _X4, _X5, _X11, and _X_11 columns were successfully removed.") # correct!~
+}
+```
+
+# Basic Mean-Mode Imputation on the Full Data
+
+```{r}
+all_ohe_cols <- c('Race_SouthAsian', 'Race_Chinese', 'Race_Black', 'Race_Filipino', 'Race_LatinAmerica',
+             'Race_Arab', 'Race_SouthEastAsian', 'Race_WestAsian', 'Race_Korean', 'Race_Japanese',
+             'Race_White', 'Gender_Woman', 'Gender_Man', 'Gender_CulturalMinority', 'Primary_BirthMother',
+             'Primary_BirthFather', 'Primary_StepMother', 'Primary_StepFather', 'Primary_AdoptiveMother', 'Primary_AdoptiveFather',
+             'Primary_FosterMother', 'Primary_FosterFather', 'Primary_Grandmother', 'Primary_Grandfather', 'Primary_Institution',
+             'QS1_26_EMPLOYMENT', # confirm this
+
+             'Barrier_Parent', 'Barrier_MentorProgramAvailability', 'Barrier_HowToFindMentor', 'Barrier_MentorValue',
+             'Barrier_OtherKids', 'Barrier_Relevance', 'Barrier_Waitlisted', 'Relation1_SchoolStaff', 'Relation1_Neighbour',
+             'Relation1_FamilyFriend', 'Relation1_FriendsParent', 'Relation1_AdultSibling', 
+             'Relation1_OtherAdultRelative', 'Relation1_FosterParent',
+             'Relation1_YouthWorker', 'Relation1_Volunteer', 'Relation1_Elder-Auntie', 
+             'Relation1_Social-CaseWorker', 'Relation1_Therapist-Councellor-Physcologist',
+             'Relation1_SpirutalLeader', 'Relation1_Coach-GuidesLeader', 
+
+              'Relation2_SchoolStaff', 'Relation2_Neighbour',
+              'Relation2_FamilyFriend', 'Relation2_FriendsParent', 'Relation2_AdultSibling', 
+              'Relation2_OtherAdultRelative', 'Relation2_FosterParent',
+              'Relation2_YouthWorker', 'Relation2_Volunteer', 'Relation2_Elder-Auntie', 
+              'Relation2_Social-CaseWorker', 'Relation2_Therapist-Councellor-Physcologist',
+              'Relation2_SpirutalLeader', 'Relation2_Coach-GuidesLeader', 
+
+
+              'Relation3_SchoolStaff', 'Relation3_Neighbour',
+              'Relation3_FamilyFriend', 'Relation3_FriendsParent', 'Relation3_AdultSibling', 
+              'Relation3_OtherAdultRelative', 'Relation3_FosterParent',
+              'Relation3_YouthWorker', 'Relation3_Volunteer', 'Relation3_Elder-Auntie', 
+              'Relation3_Social-CaseWorker', 'Relation3_Therapist-Councellor-Physcologist',
+              'Relation3_SpirutalLeader', 'Relation3_Coach-GuidesLeader', 
+
+              
+              'Focus1_EducationSupport', 'Focus1_Spirutal-Religous-CulturalSupport', 'Focus1_Emotional-SocialSupport',
+              'Focus2_EducationSupport', 'Focus2_Spirutal-Religous-CulturalSupport', 'Focus2_Emotional-SocialSupport',
+              'Focus3_EducationSupport', 'Focus3_Spirutal-Religous-CulturalSupport', 'Focus3_Emotional-SocialSupport',
+              
+              'Initated_StrugglingInSchool', 'Initated_StrugglingMentalHealth', 'Initated_InFoster-GovernmentCare',
+              'Initated_StrugglingGender-SexualOrient', 'Initated_GuardianInPrison',  'Initated_CarrerPlanningGuidance',
+              'Initated_AcademicFutureGuidance', 'Initated_InTroubleWithLaw', 'Initated_Bullied', 
+              'Initated_StrugglingRelatingToOthers', 'Initated_SomeoneToTalkTo', 'Initated_MovedSchools-Cities-Community', 
+              'Initated_Immigrated', 'Initated_FamilyChanges', 
+
+              'Negative_MetorQuit', 'Negative_MetorDidNotUnderstandYouth', 'Negative_MetorDidNotUnderstandCulture', 
+              'Negative_MetorUnreliable', 'Negative_MetorCouldNotSupport', 'Negative_DidNotGetAlong',
+              'Negative_ReassignedMentor', 'Negative_MetorHadUnrealisticExpectations', 'Negative_MetorDidNotRespectBoundaries',
+              'Negative_MetorDidNotRelateGender-SexualOrient', 'Negative_MetorBusy', 'Negative_MetorDidNotRelateBackground',
+              'Negative_MetorLookedDownOnMentee', 'Negative_MetorLookedDownOnFamily', 'Negative_Family-GuardiansDidNotSupport', 
+              
+              'QS3_2_TRANSITIONWIT1_1_1', 'QS3_2_TRANSITIONWIT1_2_2', 'QS3_2_TRANSITIONWIT1_3_3',
+              'QS3_2_TRANSITIONWIT1_4_4', 'QS3_2_TRANSITIONWIT1_5_5', 'QS3_2_TRANSITIONWIT1_6_6', 
+              'QS3_2_TRANSITIONWIT1_7_7', 'QS3_2_TRANSITIONWIT1_8_8', 'QS3_2_TRANSITIONWIT1_9_9', 
+              'QS3_2_TRANSITIONWIT1_10_10', 'QS3_2_TRANSITIONWIT1_11_11', 'QS3_2_TRANSITIONWIT1_12_12', 
+              'QS3_2_TRANSITIONWIT1_13_13', 
+              
+              'QS3_3_TRANSITIONSWI1_1_1', 'QS3_3_TRANSITIONSWI1_2_2',
+              'QS3_3_TRANSITIONSWI1_3_3', 'QS3_3_TRANSITIONSWI1_4_4', 'QS3_3_TRANSITIONSWI1_5_5', 
+              'QS3_3_TRANSITIONSWI1_6_6', 'QS3_3_TRANSITIONSWI1_7_7', 'QS3_3_TRANSITIONSWI1_8_8', 
+              'QS3_3_TRANSITIONSWI1_9_9', 'QS3_3_TRANSITIONSWI1_10_10', 'QS3_3_TRANSITIONSWI1_11_11', 
+              'QS3_3_TRANSITIONSWI1_12_12', 'QS3_3_TRANSITIONSWI1_13_13', 'QS3_3_TRANSITIONSWI1_14_14', 
+              'QS3_3_TRANSITIONSWI1_15_15', 'QS3_3_TRANSITIONSWI1_16_16', 'QS3_3_TRANSITIONSWI1_17_17',
+              
+              'QS1_2_PROV_Alberta', 'QS1_2_PROV_Ontario', 'QS1_2_PROV_British.Columbia', 
+              'QS1_2_PROV_Quebec', 'QS1_2_PROV_New.Brunswick', 'QS1_2_PROV_Prince.Edward.Island',
+              'QS1_2_PROV_Manitoba', 'QS1_2_PROV_Outside.of.Canada', 'QS1_2_PROV_Newfoundland.and.Labrador', 
+              'QS1_2_PROV_Saskatchewan', 'QS1_2_PROV_Yukon', 
+
+              'QS1_3_COMMUNITYTYPE_Urban','QS1_3_COMMUNITYTYPE_Suburban', 
+              'QS1_3_COMMUNITYTYPE_Remote', 'QS1_3_COMMUNITYTYPE_Rural', 
+              
+              'QS1_4_INDIGENOUS_I.don.t.identify.as.a.member.of.these.communities', 'QS1_4_INDIGENOUS_Métis', 
+              'QS1_4_INDIGENOUS_First.Nations..North.American.Indian.',
+              'QS1_4_INDIGENOUS_Inuk..Inuit.', 'QS1_5_INDIGENOUSHS_X1', 
+
+              'QS1_7_NEWCOMER_Yes', 
+              
+              'QS1_10_TRANSUM_Yes', 
+              'QS1_11_SEXUALO_Heterosexual', 'QS1_11_SEXUALO_Asexual',
+              'QS1_11_SEXUALO_Bisexual..pansexual..or.queer', 'QS1_11_SEXUALO_Questioning.or.unsure', 'QS1_11_SEXUALO_Gay', 'QS1_11_SEXUALO_Prefer.to.self.describe.', 
+              'QS1_11_SEXUALO_Lesbian', 'QS1_11_SEXUALO_Two.Spirit',
+              
+              'QS1_12_DISABIL_Yes', 'QS1_13_DISABIL_Yes', 'QS1_17_INCARE_X1',
+
+              'QS1_19_HIGHSCHOOL_Yes', 'QS1_21_FURTHEDUCA_Yes', 
+              'QS1_25_EMPLOYMENT_Studying.or.in.education.training',
+              'QS1_25_EMPLOYMENT_Working..paid.work.for.at.least.1.hr.week.', 'QS1_25_EMPLOYMENT_Neither.of.the.above', 
+              'QS1_25_EMPLOYMENT_Both', 
+              'QS1_27_PLANNINGRE_X1', 'QS1_28_EMPLOYMENT_Monthly', 'QS1_28_EMPLOYMENT_Yearly',
+              'QS1_28_EMPLOYMENT_Bi.weekly', 'QS1_28_EMPLOYMENT_Semi.monthly', 'QS1_28_EMPLOYMENT_Weekly', 
+              
+              'QS2_1_MEANINGFULP_Yes', 'QS2_2_MEANINGFULP_Yes', 'QS2_3_PRESENCEOFM_Yes',
+              'QS2_4_MENTOR61FOR_Yes', 'QS2_5_MENTOR611PR_X1', 'QS2_7_MENTOR611SE_X1', 
+              'QS2_8_UNMETNEED61_Yes', 'QS2_9_PRESENCEOFA_Yes', 'QS2_11_MENTOR1218_X1',
+              'QS2_12_UNMETNEED1_Yes', 'QS2_16_FORMAT_1_Yes', 'QS2_17_TYPE_1_X1',
+              'QS2_17_TYPE_1_X2', 'QS2_17_TYPE_1_X3', 'QS2_18_LOCATION_1_X1', 
+              'QS2_18_LOCATION_1_X2', 'QS2_18_LOCATION_1_X3', 'QS2_22_GEOLOCATI1_X1',
+              'QS2_16_FORMAT_2_Yes', 'QS2_17_TYPE_2_X1', 'QS2_17_TYPE_2_X2',
+              'QS2_17_TYPE_2_X3', 'QS2_18_LOCATION_2_X1', 'QS2_18_LOCATION_2_X2', 
+              'QS2_18_LOCATION_2_X3', 'QS2_22_GEOLOCATI2_X1', 'QS2_16_FORMAT_3_Yes',
+              'QS2_17_TYPE_3_X1', 'QS2_17_TYPE_3_X2', 'QS2_17_TYPE_3_X3',
+              'QS2_18_LOCATION_3_X1', 'QS2_18_LOCATION_3_X2', 'QS2_18_LOCATION_3_X3', 
+              'QS2_22_GEOLOCATI3_X1', 'QS2_23_MOSTMEANI_X1', 'QS2_23_MOSTMEANI_X2',
+              'QS2_23_MOSTMEANI_X3', 'QS2_24_MENTORAGE_X3.5.years.older.than.me', 
+              'QS2_24_MENTORAGE_More.than.6.years.older.than.me',
+              'QS2_24_MENTORAGE_X1.2.years.older.than.me', 
+              'QS2_28_MATCHCHOICE_Yes', 'Match_GenderIdentity_Yes', 
+              'Match_Ethnicity_Yes', 'Match_CulturalBackground_Yes', 'Match_ScheduleAvailability_Yes',
+              'Match_Interests_Yes', 'Match_Goals_Yes', 'Match_Personalities_Yes',
+              'Match_LifeStruggles_Yes', 
+              
+              'Transition_School_Yes', 'Transition_NewSchool_Yes', 
+              'Transition_NewCommunity_Yes', 'Transition_GettingDriversLicense_Yes', 'Transition_JobAspirations_Yes',
+              'Transition_GettingFirstJob_Yes', 'Transition_ApplyingToTradeSchool-Collge-Uni_Yes', 
+              'Transition_IndependenceFromGuardian_Yes', 'Transition_FundingForTradeSchool-Collge-Uni_Yes',
+              
+              'QS2_33_TRANSITIONS1_13_13_Yes', 'QS2_33_TRANSITIONS1_14_14_Yes', # should be deleted as they encode Other & unsure
+              
+              'QS3_4_LIFEEVENTS1_1_1_X1', 'QS3_4_LIFEEVENTS1_2_2_X1', 'QS3_4_LIFEEVENTS1_3_3_X1',
+              'QS3_4_LIFEEVENTS1_4_4_X1', 'QS3_4_LIFEEVENTS1_5_5_X1', 'QS3_4_LIFEEVENTS1_6_6_X1',
+              'QS3_4_LIFEEVENTS1_7_7_X1', 'QS3_4_LIFEEVENTS1_8_8_X1', 'QS3_4_LIFEEVENTS1_9_9_X1', 
+              'QS3_4_LIFEEVENTS1_10_10_X1', 'QS3_4_LIFEEVENTS1_11_11_X1', 'QS3_4_LIFEEVENTS1_12_12_X1',
+              'QS3_4_LIFEEVENTS1_13_13_X1', 'QS3_4_LIFEEVENTS1_14_14_X1', 'QS3_4_LIFEEVENTS1_15_15_X1',
+              'QS3_4_LIFEEVENTS1_16_16_X1', 'QS3_4_LIFEEVENTS1_17_17_X1', 'QS3_4_LIFEEVENTS1_18_18_X1', 
+              'QS3_4_LIFEEVENTS1_19_19_X1', 'QS3_4_LIFEEVENTS1_20_20_X1', 'QS4_1_MEANINGFULPERSON_X1',
+              'QS4_1_MEANINGFULPERSON_X2',
+              
+              'QS4_4_EDUCATIONALEXPEC_X1', 'QS4_4_EDUCATIONALEXPEC_X2', 'QS4_4_EDUCATIONALEXPEC_X3',
+              'QS4_4_EDUCATIONALEXPEC_X4', 'QS4_4_EDUCATIONALEXPEC_X5', 'QS4_4_EDUCATIONALEXPEC_X6',
+              'QS4_4_EDUCATIONALEXPEC_X7', 'QS4_4_EDUCATIONALEXPEC_X8', 'QS4_4_EDUCATIONALEXPEC_X9',
+              'QS4_4_EDUCATIONALEXPEC_X10', 'QS4_4_EDUCATIONALEXPEC_X11',
+              'QS4_6_DISAPPOINTED_X1', 
+              'QS4_13_LIFEEVE1_1_1_X1', 'QS4_13_LIFEEVE1_2_2_X1', 'QS4_13_LIFEEVE1_3_3_X1',
+              'QS4_13_LIFEEVE1_4_4_X1', 'QS4_13_LIFEEVE1_5_5_X1', 'QS4_13_LIFEEVE1_6_6_X1',
+              
+              'QS4_16_FORMALVOL_X1', 'QS4_17_SERVEDASM_Yes..and.I.am.currently.a.mentor', 
+              'QS4_17_SERVEDASM_Yes..I.have.been.a.mentor.but.am.not.currently.a.mentor',
+              'QS4_18_CURRENTOR_Informal', 'QS4_18_CURRENTOR_Both', 'QS4_18_CURRENTOR_Formal',
+              'QS4_21_MENTORING_X1', 'QS4_21_MENTORING_X2', 'QS4_21_MENTORING_X1',
+              'QS4_22_PASTMENTO_X2', 'QS4_22_PASTMENTO_X3', 'QS4_25_FUTUREMEN_Both',
+              'QS4_25_FUTUREMEN_Informal', 'QS4_25_FUTUREMEN_Formal', 
+              
+              'QS4_26_INTERNETC_X1',
+              'QS4_27_INTERNETC1_1_1_X1', 'QS4_27_INTERNETC1_2_2_X1', 'QS4_27_INTERNETC1_3_3_X1',
+              'QS4_27_INTERNETC1_4_4_X1', 'QS4_28_INTERNETCON_X1', 'QS4_29_PRIVATECONN_X1',
+              'QS4_29_PRIVATECONN_X2', 'QS4_30_INTERNETCON_X1', 'QS4_30_INTERNETCON_X3',
+              'QS4_31_MOBILECONNE_X1', 'QS4_32_MOBILECONNE1_1_1_X1', 'QS4_32_MOBILECONNE1_2_2_X1',
+              'QS4_32_MOBILECONNE1_3_3_X1', 'QS4_32_MOBILECONNE1_4_4_X1', 'QS4_33_MOBILECONNECT_X1'
+
+             )
+# mentor_ohe_cols <-
+
+```
+
+### Other features (e.g., demographics)
+
+```{r}
+# Other features (e.g., demographics):
+non_mentor_cols <- c('Race_SouthAsian', 'Race_Chinese', 'Race_Black', 'Race_Filipino', 'Race_LatinAmerica',
+             'Race_Arab', 'Race_SouthEastAsian', 'Race_WestAsian', 
+             'Race_Korean', 'Race_Japanese', 'Race_White', 
+
+             'Gender_Woman', 'Gender_Man', 'Gender_CulturalMinority', 
+             'Primary_BirthMother','Primary_BirthFather', 'Primary_StepMother', 
+             'Primary_StepFather', 'Primary_AdoptiveMother', 'Primary_AdoptiveFather',
+             'Primary_FosterMother', 'Primary_FosterFather', 'Primary_Grandmother',
+              'Primary_Grandfather', 'Primary_Institution',
+
+             'QS1_26_EMPLOYMENT',
+             'QS1_22_HIGHESTEDU', 
+
+"QS4_3_CAREERPLANNIN1_1_1", "QS4_3_CAREERPLANNIN1_2_2", "QS4_3_CAREERPLANNIN1_3_3", "QS4_3_CAREERPLANNIN1_4_4", "QS4_3_CAREERPLANNIN1_5_5", "QS4_3_CAREERPLANNIN1_6_6", "QS4_3_CAREERPLANNIN1_7_7", "QS4_3_CAREERPLANNIN1_8_8",
+  "QS4_5_SATEDU", 
+
+
+  "QS4_7_SOCIALCAPITAL1_1_1", "QS4_7_SOCIALCAPITAL1_2_2", 
+  "QS4_7_SOCIALCAPITAL1_3_3", "QS4_7_SOCIALCAPITAL1_4_4",
+  
+  "QS4_9_MENTALHEALTH",  "QS4_11_BELONGING",
+  "QS4_20_MENTEEAGE", "QS4_24_FUTUREMEN", 
+  "QS3_1_GLOBALSELFWOR1_1_1", "QS3_1_GLOBALSELFWOR1_2_2", "QS3_1_GLOBALSELFWOR1_3_3", "QS3_1_GLOBALSELFWOR1_4_4", "QS3_1_GLOBALSELFWOR1_5_5", "QS3_1_GLOBALSELFWOR1_6_6", "QS3_1_GLOBALSELFWOR1_7_7", "QS3_1_GLOBALSELFWOR1_8_8", 
+  
+  "QS3_5_SCHOOLCLIMATE1_1_1", "QS3_5_SCHOOLCLIMATE1_2_2", "QS3_5_SCHOOLCLIMATE1_3_3", "QS3_5_SCHOOLCLIMATE1_4_4", "QS3_5_SCHOOLCLIMATE1_5_5", "QS3_5_SCHOOLCLIMATE1_6_6", "QS3_5_SCHOOLCLIMATE1_7_7", "QS3_5_SCHOOLCLIMATE1_8_8", "QS3_5_SCHOOLCLIMATE1_9_9", "QS3_5_SCHOOLCLIMATE1_10_10", 
+  
+  "QS4_8_HELPSEEKING1_1_1", "QS4_8_HELPSEEKING1_2_2", "QS4_8_HELPSEEKING1_3_3", "QS4_8_HELPSEEKING1_4_4", "QS4_8_HELPSEEKING1_5_5", "QS4_8_HELPSEEKING1_6_6", "QS4_8_HELPSEEKING1_7_7", "QS4_8_HELPSEEKING1_8_8", "QS4_8_HELPSEEKING1_9_9", "QS4_8_HELPSEEKING1_10_10", 
+  
+  "QS4_10_MENTALWELLBE1_1_1", "QS4_10_MENTALWELLBE1_2_2", "QS4_10_MENTALWELLBE1_3_3", "QS4_10_MENTALWELLBE1_4_4", "QS4_10_MENTALWELLBE1_5_5", "QS4_10_MENTALWELLBE1_6_6", "QS4_10_MENTALWELLBE1_7_7",  
+  
+  "QS3_4_LIFEEVENTS1_1_1_X1", "QS3_4_LIFEEVENTS1_2_2_X1", "QS3_4_LIFEEVENTS1_3_3_X1", "QS3_4_LIFEEVENTS1_4_4_X1", "QS3_4_LIFEEVENTS1_5_5_X1", "QS3_4_LIFEEVENTS1_6_6_X1", "QS3_4_LIFEEVENTS1_7_7_X1", "QS3_4_LIFEEVENTS1_8_8_X1", "QS3_4_LIFEEVENTS1_9_9_X1", "QS3_4_LIFEEVENTS1_10_10_X1", "QS3_4_LIFEEVENTS1_11_11_X1", "QS3_4_LIFEEVENTS1_12_12_X1", "QS3_4_LIFEEVENTS1_13_13_X1", "QS3_4_LIFEEVENTS1_14_14_X1", "QS3_4_LIFEEVENTS1_15_15_X1", "QS3_4_LIFEEVENTS1_16_16_X1", "QS3_4_LIFEEVENTS1_17_17_X1", "QS3_4_LIFEEVENTS1_18_18_X1", "QS3_4_LIFEEVENTS1_19_19_X1", "QS3_4_LIFEEVENTS1_20_20_X1", 
+  
+  "QS4_4_EDUCATIONALEXPEC_X1","QS4_4_EDUCATIONALEXPEC_X2","QS4_4_EDUCATIONALEXPEC_X3",
+  "QS4_4_EDUCATIONALEXPEC_X4","QS4_4_EDUCATIONALEXPEC_X5","QS4_4_EDUCATIONALEXPEC_X6",
+  "QS4_4_EDUCATIONALEXPEC_X7","QS4_4_EDUCATIONALEXPEC_X8","QS4_4_EDUCATIONALEXPEC_X9",
+  "QS4_4_EDUCATIONALEXPEC_X10","QS4_4_EDUCATIONALEXPEC_X11",
+
+  "QS4_6_DISAPPOINTED_X1",  
+  
+  "QS4_13_LIFEEVE1_1_1_X1", "QS4_13_LIFEEVE1_2_2_X1", "QS4_13_LIFEEVE1_3_3_X1", "QS4_13_LIFEEVE1_4_4_X1", "QS4_13_LIFEEVE1_5_5_X1", "QS4_13_LIFEEVE1_6_6_X1",  
+
+  "QS4_16_FORMALVOL_X1", 
+
+  "QS4_17_SERVEDASM_Yes..and.I.am.currently.a.mentor", "QS4_17_SERVEDASM_Yes..I.have.been.a.mentor.but.am.not.currently.a.mentor",
+  "QS4_18_CURRENTOR_Informal", "QS4_18_CURRENTOR_Both", "QS4_18_CURRENTOR_Formal",
+
+    "QS4_21_MENTORING_X1", "QS4_21_MENTORING_X2", 
+    
+    "QS4_22_PASTMENTO_X1","QS4_22_PASTMENTO_X2", "QS4_22_PASTMENTO_X3",
+      "QS4_25_FUTUREMEN_Both", "QS4_25_FUTUREMEN_Informal", "QS4_25_FUTUREMEN_Formal",
+    
+    "QS4_26_INTERNETC_X1",
+     "QS4_27_INTERNETC1_1_1_X1", "QS4_27_INTERNETC1_2_2_X1", 
+     "QS4_27_INTERNETC1_3_3_X1", "QS4_27_INTERNETC1_4_4_X1",
+     
+     "QS4_28_INTERNETCON_X1", "QS4_29_PRIVATECONN_X1", "QS4_29_PRIVATECONN_X2",
+      "QS4_30_INTERNETCON_X1", "QS4_30_INTERNETCON_X3",
+      "QS4_31_MOBILECONNE_X1", 
+      
+      "QS4_32_MOBILECONNE1_1_1_X1", "QS4_32_MOBILECONNE1_2_2_X1", "QS4_32_MOBILECONNE1_3_3_X1", "QS4_32_MOBILECONNE1_4_4_X1", 
+      
+      "QS4_33_MOBILECONNECT_X1", 
+    
+            'QS1_2_PROV_Alberta', 'QS1_2_PROV_Ontario', 'QS1_2_PROV_British.Columbia', 
+              'QS1_2_PROV_Quebec', 'QS1_2_PROV_New.Brunswick', 'QS1_2_PROV_Prince.Edward.Island',
+              'QS1_2_PROV_Manitoba', 'QS1_2_PROV_Outside.of.Canada', 'QS1_2_PROV_Newfoundland.and.Labrador', 
+              'QS1_2_PROV_Saskatchewan', 'QS1_2_PROV_Yukon', 
+
+              'QS1_3_COMMUNITYTYPE_Urban','QS1_3_COMMUNITYTYPE_Suburban', 
+              'QS1_3_COMMUNITYTYPE_Remote', 'QS1_3_COMMUNITYTYPE_Rural', 
+              
+              'QS1_4_INDIGENOUS_I.don.t.identify.as.a.member.of.these.communities', 'QS1_4_INDIGENOUS_Métis', 
+              'QS1_4_INDIGENOUS_First.Nations..North.American.Indian.',
+              'QS1_4_INDIGENOUS_Inuk..Inuit.', 'QS1_5_INDIGENOUSHS_X1', 
+
+              'QS1_7_NEWCOMER_Yes', 
+
+
+               
+              'QS1_10_TRANSUM_Yes', 
+              'QS1_11_SEXUALO_Heterosexual', 'QS1_11_SEXUALO_Asexual',
+              'QS1_11_SEXUALO_Bisexual..pansexual..or.queer', 'QS1_11_SEXUALO_Questioning.or.unsure', 'QS1_11_SEXUALO_Gay', 'QS1_11_SEXUALO_Prefer.to.self.describe.', 
+              'QS1_11_SEXUALO_Lesbian', 'QS1_11_SEXUALO_Two.Spirit',
+              
+              'QS1_12_DISABIL_Yes', 'QS1_13_DISABIL_Yes', 'QS1_17_INCARE_X1',
+    
+              'QS1_19_HIGHSCHOOL_Yes', 'QS1_21_FURTHEDUCA_Yes', 
+              'QS1_25_EMPLOYMENT_Studying.or.in.education.training',
+              'QS1_25_EMPLOYMENT_Working..paid.work.for.at.least.1.hr.week.', 'QS1_25_EMPLOYMENT_Neither.of.the.above', 
+              'QS1_25_EMPLOYMENT_Both', 
+              'QS1_27_PLANNINGRE_X1', 'QS1_28_EMPLOYMENT_Monthly', 'QS1_28_EMPLOYMENT_Yearly',
+              'QS1_28_EMPLOYMENT_Bi.weekly', 'QS1_28_EMPLOYMENT_Semi.monthly', 'QS1_28_EMPLOYMENT_Weekly', 
+
+    "QS1_1_AGE", "QS1_8_NEWCOMERYEAR", "QS1_14_DISABIL", "QS1_15_DISABIL", 'QS1_18_PARENTEDUC1', 'QS1_18_PARENTEDUC2', "QS1_20_HIGHSCHOOL", "QS1_23_YEARCOMPLE", "QS2_10_NUMBEROFME", "QS4_15_TIMEIFFOR1", "QS4_15_TIMEIFFOR2", "QS4_15_TIMEIFFOR3", "QS4_15_TIMEIFFOR4",  "QS4_12_TRUST1_1_1", "QS4_12_TRUST1_2_2", "QS4_12_TRUST1_3_3", "QS4_12_TRUST1_4_4", "QS4_12_TRUST1_5_5", "QS4_14_FORMALVOL", "QS1_28_EMPLOYMENT_calculated"
+
+
+)
+# colSums(is.na(ohe_unimputed_all_data[non_mentor_cols])) / 2396
+```
+
+```{r}
+#mentor_cont_cols <- c()
+
+mentor_ord_cols <- c("QS2_6_MENTOREXPER", "QS2_34_SUPPORTS1_1_1", "QS2_34_SUPPORTS1_2_2", "QS2_34_SUPPORTS1_3_3", "QS2_34_SUPPORTS1_4_4", "QS2_34_SUPPORTS1_5_5", "QS2_34_SUPPORTS1_6_6", "QS2_34_SUPPORTS1_7_7", "QS2_34_SUPPORTS1_8_8", "QS2_34_SUPPORTS1_9_9", "QS2_36_INFLUENCE1_1_1", "QS2_36_INFLUENCE1_2_2", "QS2_36_INFLUENCE1_3_3", "QS2_36_INFLUENCE1_4_4", "QS2_36_INFLUENCE1_5_5", "QS2_36_INFLUENCE1_6_6", "QS2_36_INFLUENCE1_7_7", "QS2_36_INFLUENCE1_8_8", "QS2_36_INFLUENCE1_9_9", 
+
+"QS2_19_DURATION_1", "QS2_20_EXPERIENCE_1", "QS2_19_DURATION_2", "QS2_20_EXPERIENCE_2", "QS2_19_DURATION_3", "QS2_20_EXPERIENCE_3", "QS2_30_MATCHSIMILAR1_1_1", "QS2_30_MATCHSIMILAR1_2_2", "QS2_30_MATCHSIMILAR1_3_3", "QS2_30_MATCHSIMILAR1_4_4", "QS2_30_MATCHSIMILAR1_5_5", "QS2_31_MENTORINGREL1_1_1", "QS2_31_MENTORINGREL1_2_2", "QS2_31_MENTORINGREL1_3_3", "QS2_31_MENTORINGREL1_4_4", "QS2_31_MENTORINGREL1_5_5", "QS2_32_MENTORINGENG1_1_1", "QS2_32_MENTORINGENG1_2_2", "QS2_32_MENTORINGENG1_3_3", "QS2_32_MENTORINGENG1_4_4", "QS2_32_MENTORINGENG1_5_5", "QS2_32_MENTORINGENG1_6_6", "QS2_32_MENTORINGENG1_7_7", "QS2_32_MENTORINGENG1_8_8", "QS2_32_MENTORINGENG1_9_9", "QS2_32_MENTORINGENG1_10_10", "QS2_32_MENTORINGENG1_11_11", "QS2_32_MENTORINGENG1_12_12", "QS2_32_MENTORINGENG1_13_13", "QS2_32_MENTORINGENG1_14_14", "QS2_32_MENTORINGENG1_15_15", "QS2_32_MENTORINGENG1_16_16", "QS2_32_MENTORINGENG1_17_17", "QS2_32_MENTORINGENG1_18_18", "QS2_32_MENTORINGENG1_19_19", "QS2_32_MENTORINGENG1_20_20", "QS2_32_MENTORINGENG1_21_21", "QS2_32_MENTORINGENG1_22_22", 
+"QS2_35_SUPPORTSIMPO1_1_1", "QS2_35_SUPPORTSIMPO1_2_2", "QS2_35_SUPPORTSIMPO1_3_3", "QS2_35_SUPPORTSIMPO1_4_4", "QS2_35_SUPPORTSIMPO1_5_5", "QS2_35_SUPPORTSIMPO1_6_6", "QS2_35_SUPPORTSIMPO1_7_7", "QS2_35_SUPPORTSIMPO1_8_8", "QS2_35_SUPPORTSIMPO1_9_9", "QS2_35_SUPPORTSIMPO1_10_10", "QS2_37_HELPFULNESS"
+
+)
+
+mentor_ohe_cols <- c(             'Barrier_Parent', 'Barrier_MentorProgramAvailability', 'Barrier_HowToFindMentor', 'Barrier_MentorValue',
+             'Barrier_OtherKids', 'Barrier_Relevance', 'Barrier_Waitlisted', 'Relation1_SchoolStaff', 'Relation1_Neighbour',
+             'Relation1_FamilyFriend', 'Relation1_FriendsParent', 'Relation1_AdultSibling', 
+             'Relation1_OtherAdultRelative', 'Relation1_FosterParent',
+             'Relation1_YouthWorker', 'Relation1_Volunteer', 'Relation1_Elder-Auntie', 
+             'Relation1_Social-CaseWorker', 'Relation1_Therapist-Councellor-Physcologist',
+             'Relation1_SpirutalLeader', 'Relation1_Coach-GuidesLeader', 
+
+              'Relation2_SchoolStaff', 'Relation2_Neighbour',
+              'Relation2_FamilyFriend', 'Relation2_FriendsParent', 'Relation2_AdultSibling', 
+              'Relation2_OtherAdultRelative', 'Relation2_FosterParent',
+              'Relation2_YouthWorker', 'Relation2_Volunteer', 'Relation2_Elder-Auntie', 
+              'Relation2_Social-CaseWorker', 'Relation2_Therapist-Councellor-Physcologist',
+              'Relation2_SpirutalLeader', 'Relation2_Coach-GuidesLeader', 
+
+
+              'Relation3_SchoolStaff', 'Relation3_Neighbour',
+              'Relation3_FamilyFriend', 'Relation3_FriendsParent', 'Relation3_AdultSibling', 
+              'Relation3_OtherAdultRelative', 'Relation3_FosterParent',
+              'Relation3_YouthWorker', 'Relation3_Volunteer', 'Relation3_Elder-Auntie', 
+              'Relation3_Social-CaseWorker', 'Relation3_Therapist-Councellor-Physcologist',
+              'Relation3_SpirutalLeader', 'Relation3_Coach-GuidesLeader', 
+
+              
+              'Focus1_EducationSupport', 'Focus1_Spirutal-Religous-CulturalSupport', 'Focus1_Emotional-SocialSupport',
+              'Focus2_EducationSupport', 'Focus2_Spirutal-Religous-CulturalSupport', 'Focus2_Emotional-SocialSupport',
+              'Focus3_EducationSupport', 'Focus3_Spirutal-Religous-CulturalSupport', 'Focus3_Emotional-SocialSupport',
+              
+              'Initated_StrugglingInSchool', 'Initated_StrugglingMentalHealth', 'Initated_InFoster-GovernmentCare',
+              'Initated_StrugglingGender-SexualOrient', 'Initated_GuardianInPrison',  'Initated_CarrerPlanningGuidance',
+              'Initated_AcademicFutureGuidance', 'Initated_InTroubleWithLaw', 'Initated_Bullied', 
+              'Initated_StrugglingRelatingToOthers', 'Initated_SomeoneToTalkTo', 'Initated_MovedSchools-Cities-Community', 
+              'Initated_Immigrated', 'Initated_FamilyChanges', 
+
+              'Negative_MetorQuit', 'Negative_MetorDidNotUnderstandYouth', 'Negative_MetorDidNotUnderstandCulture', 
+              'Negative_MetorUnreliable', 'Negative_MetorCouldNotSupport', 'Negative_DidNotGetAlong',
+              'Negative_ReassignedMentor', 'Negative_MetorHadUnrealisticExpectations', 'Negative_MetorDidNotRespectBoundaries',
+              'Negative_MetorDidNotRelateGender-SexualOrient', 'Negative_MetorBusy', 'Negative_MetorDidNotRelateBackground',
+              'Negative_MetorLookedDownOnMentee', 'Negative_MetorLookedDownOnFamily', 'Negative_Family-GuardiansDidNotSupport', 
+              
+              'QS3_2_TRANSITIONWIT1_1_1', 'QS3_2_TRANSITIONWIT1_2_2', 'QS3_2_TRANSITIONWIT1_3_3',
+              'QS3_2_TRANSITIONWIT1_4_4', 'QS3_2_TRANSITIONWIT1_5_5', 'QS3_2_TRANSITIONWIT1_6_6', 
+              'QS3_2_TRANSITIONWIT1_7_7', 'QS3_2_TRANSITIONWIT1_8_8', 'QS3_2_TRANSITIONWIT1_9_9', 
+              'QS3_2_TRANSITIONWIT1_10_10', 'QS3_2_TRANSITIONWIT1_11_11', 'QS3_2_TRANSITIONWIT1_12_12', 
+              'QS3_2_TRANSITIONWIT1_13_13', # informal mentor
+              
+              'QS3_3_TRANSITIONSWI1_1_1', 'QS3_3_TRANSITIONSWI1_2_2',
+              'QS3_3_TRANSITIONSWI1_3_3', 'QS3_3_TRANSITIONSWI1_4_4', 'QS3_3_TRANSITIONSWI1_5_5', 
+              'QS3_3_TRANSITIONSWI1_6_6', 'QS3_3_TRANSITIONSWI1_7_7', 'QS3_3_TRANSITIONSWI1_8_8', 
+              'QS3_3_TRANSITIONSWI1_9_9', 'QS3_3_TRANSITIONSWI1_10_10', 'QS3_3_TRANSITIONSWI1_11_11', 
+              'QS3_3_TRANSITIONSWI1_12_12', 'QS3_3_TRANSITIONSWI1_13_13', 'QS3_3_TRANSITIONSWI1_14_14', 
+              'QS3_3_TRANSITIONSWI1_15_15', 'QS3_3_TRANSITIONSWI1_16_16', 'QS3_3_TRANSITIONSWI1_17_17')
+```
+
+> QS2_3_PRESENCEOFM_Yes, QS2_9_PRESENCEOFA_Yes
+>
+> > Use QS2_3_PRESENCEOFM_Yes and QS2_9_PRESENCEOFA_Yes as predictors to capture the MNAR structure.
+> >
+> > Assign appropriate imputation method according to each data type:
+> >
+> > Continuous –\> Predictive mean matching (pmm)
+> >
+> > Ordinal –\> Polytomous regression (polyreg)
+> >
+> > OHE –\> Logistic regression (logreg)
+
+```{}
+```
+
+```{}
+```
+
+```{}
+```
+
+```{}
+```
+
+...
+
+```{}
+```
+
+```{}
+```
+
+```{}
+```
+
+```{}
+```
+
+```{}
+```
+
+# Data frame export:
+
+```{r}
+# Un-normalized ordinal, umimputed:
+write_feather(ohe_unimputed_all_data, "../../dssg-2025-mentor-canada/Data/ohe_umimputed_all_data.feather")
+write_csv(ohe_unimputed_all_data, "../../dssg-2025-mentor-canada/Data/ohe_umimputed_all_data.csv") 
+
+# Normalized ordinal, umimputed:
+write_feather(ohe_unimputed_normalize_all_data, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_all_data.feather")
+write_csv(ohe_unimputed_normalize_all_data, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_all_data.csv") 
+
+
+```
+
+> In both sets:
+>
+> -   Number of rows in processed data: **2396**
+>
+> -   Number of columns in processed data: **461**
+
+> >

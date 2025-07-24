@@ -356,7 +356,7 @@ head(pns_counts)
 
 ```{r}
 # metric variables, not including outcome `QS1_25_EMPLOYMENT`
-metric_vars <- c("QS1_1_AGE", "QS1_8_NEWCOMERYEAR", "QS1_14_DISABIL", "QS1_15_DISABIL", "QS1_20_HIGHSCHOOL", "QS1_23_YEARCOMPLE", "QS2_10_NUMBEROFME", "QS4_15_TIMEIFFOR1", "QS4_15_TIMEIFFOR2", "QS4_15_TIMEIFFOR3", "QS4_15_TIMEIFFOR4",  "QS4_12_TRUST1_1_1", "QS4_12_TRUST1_2_2", "QS4_12_TRUST1_3_3", "QS4_12_TRUST1_4_4", "QS4_12_TRUST1_5_5", "QS4_14_FORMALVOL") 
+metric_vars <- c("QS1_1_AGE", "QS1_8_NEWCOMERYEAR", "QS1_14_DISABIL", "QS1_15_DISABIL", 'QS1_18_PARENTEDUC1', 'QS1_18_PARENTEDUC2', "QS1_20_HIGHSCHOOL", "QS1_23_YEARCOMPLE", "QS2_10_NUMBEROFME", "QS4_15_TIMEIFFOR1", "QS4_15_TIMEIFFOR2", "QS4_15_TIMEIFFOR3", "QS4_15_TIMEIFFOR4",  "QS4_12_TRUST1_1_1", "QS4_12_TRUST1_2_2", "QS4_12_TRUST1_3_3", "QS4_12_TRUST1_4_4", "QS4_12_TRUST1_5_5", "QS4_14_FORMALVOL", "QS1_28_EMPLOYMENT_calculated") 
 ```
 
 ## Convert all categorical columns into factor data type
@@ -397,7 +397,7 @@ youth <- youth |>
 ## Identify Likert scale items columns (ordinal)
 
 ```{r}
-ordinal_numeric_vars <- c("QS1_18_PARENTEDUC1", "QS1_18_PARENTEDUC2", "QS2_19_DURATION_1", "QS2_20_EXPERIENCE_1", "QS2_19_DURATION_2", "QS2_20_EXPERIENCE_2", "QS2_19_DURATION_3", "QS2_20_EXPERIENCE_3", "QS2_30_MATCHSIMILAR1_1_1", "QS2_30_MATCHSIMILAR1_2_2", "QS2_30_MATCHSIMILAR1_3_3", "QS2_30_MATCHSIMILAR1_4_4", "QS2_30_MATCHSIMILAR1_5_5", "QS2_31_MENTORINGREL1_1_1", "QS2_31_MENTORINGREL1_2_2", "QS2_31_MENTORINGREL1_3_3", "QS2_31_MENTORINGREL1_4_4", "QS2_31_MENTORINGREL1_5_5", "QS2_32_MENTORINGENG1_1_1", "QS2_32_MENTORINGENG1_2_2", "QS2_32_MENTORINGENG1_3_3", "QS2_32_MENTORINGENG1_4_4", "QS2_32_MENTORINGENG1_5_5", "QS2_32_MENTORINGENG1_6_6", "QS2_32_MENTORINGENG1_7_7", "QS2_32_MENTORINGENG1_8_8", "QS2_32_MENTORINGENG1_9_9", "QS2_32_MENTORINGENG1_10_10", "QS2_32_MENTORINGENG1_11_11", "QS2_32_MENTORINGENG1_12_12", "QS2_32_MENTORINGENG1_13_13", "QS2_32_MENTORINGENG1_14_14", "QS2_32_MENTORINGENG1_15_15", "QS2_32_MENTORINGENG1_16_16", "QS2_32_MENTORINGENG1_17_17", "QS2_32_MENTORINGENG1_18_18", "QS2_32_MENTORINGENG1_19_19", "QS2_32_MENTORINGENG1_20_20", "QS2_32_MENTORINGENG1_21_21", "QS2_32_MENTORINGENG1_22_22", "QS2_35_SUPPORTSIMPO1_1_1", "QS2_35_SUPPORTSIMPO1_2_2", "QS2_35_SUPPORTSIMPO1_3_3", "QS2_35_SUPPORTSIMPO1_4_4", "QS2_35_SUPPORTSIMPO1_5_5", "QS2_35_SUPPORTSIMPO1_6_6", "QS2_35_SUPPORTSIMPO1_7_7", "QS2_35_SUPPORTSIMPO1_8_8", "QS2_35_SUPPORTSIMPO1_9_9", "QS2_35_SUPPORTSIMPO1_10_10", "QS2_37_HELPFULNESS", 
+ordinal_numeric_vars <- c("QS2_19_DURATION_1", "QS2_20_EXPERIENCE_1", "QS2_19_DURATION_2", "QS2_20_EXPERIENCE_2", "QS2_19_DURATION_3", "QS2_20_EXPERIENCE_3", "QS2_30_MATCHSIMILAR1_1_1", "QS2_30_MATCHSIMILAR1_2_2", "QS2_30_MATCHSIMILAR1_3_3", "QS2_30_MATCHSIMILAR1_4_4", "QS2_30_MATCHSIMILAR1_5_5", "QS2_31_MENTORINGREL1_1_1", "QS2_31_MENTORINGREL1_2_2", "QS2_31_MENTORINGREL1_3_3", "QS2_31_MENTORINGREL1_4_4", "QS2_31_MENTORINGREL1_5_5", "QS2_32_MENTORINGENG1_1_1", "QS2_32_MENTORINGENG1_2_2", "QS2_32_MENTORINGENG1_3_3", "QS2_32_MENTORINGENG1_4_4", "QS2_32_MENTORINGENG1_5_5", "QS2_32_MENTORINGENG1_6_6", "QS2_32_MENTORINGENG1_7_7", "QS2_32_MENTORINGENG1_8_8", "QS2_32_MENTORINGENG1_9_9", "QS2_32_MENTORINGENG1_10_10", "QS2_32_MENTORINGENG1_11_11", "QS2_32_MENTORINGENG1_12_12", "QS2_32_MENTORINGENG1_13_13", "QS2_32_MENTORINGENG1_14_14", "QS2_32_MENTORINGENG1_15_15", "QS2_32_MENTORINGENG1_16_16", "QS2_32_MENTORINGENG1_17_17", "QS2_32_MENTORINGENG1_18_18", "QS2_32_MENTORINGENG1_19_19", "QS2_32_MENTORINGENG1_20_20", "QS2_32_MENTORINGENG1_21_21", "QS2_32_MENTORINGENG1_22_22", "QS2_35_SUPPORTSIMPO1_1_1", "QS2_35_SUPPORTSIMPO1_2_2", "QS2_35_SUPPORTSIMPO1_3_3", "QS2_35_SUPPORTSIMPO1_4_4", "QS2_35_SUPPORTSIMPO1_5_5", "QS2_35_SUPPORTSIMPO1_6_6", "QS2_35_SUPPORTSIMPO1_7_7", "QS2_35_SUPPORTSIMPO1_8_8", "QS2_35_SUPPORTSIMPO1_9_9", "QS2_35_SUPPORTSIMPO1_10_10", "QS2_37_HELPFULNESS", 
 # "QS_40_REMATCHING_2", "QS_40_REMATCHING_3", 
 "QS3_1_GLOBALSELFWOR1_1_1", "QS3_1_GLOBALSELFWOR1_2_2", "QS3_1_GLOBALSELFWOR1_3_3", "QS3_1_GLOBALSELFWOR1_4_4", "QS3_1_GLOBALSELFWOR1_5_5", "QS3_1_GLOBALSELFWOR1_6_6", "QS3_1_GLOBALSELFWOR1_7_7", "QS3_1_GLOBALSELFWOR1_8_8", "QS3_5_SCHOOLCLIMATE1_1_1", "QS3_5_SCHOOLCLIMATE1_2_2", "QS3_5_SCHOOLCLIMATE1_3_3", "QS3_5_SCHOOLCLIMATE1_4_4", "QS3_5_SCHOOLCLIMATE1_5_5", "QS3_5_SCHOOLCLIMATE1_6_6", "QS3_5_SCHOOLCLIMATE1_7_7", "QS3_5_SCHOOLCLIMATE1_8_8", "QS3_5_SCHOOLCLIMATE1_9_9", "QS3_5_SCHOOLCLIMATE1_10_10", "QS4_2_MEANINGFULPERSON",    "QS4_8_HELPSEEKING1_1_1", "QS4_8_HELPSEEKING1_2_2", "QS4_8_HELPSEEKING1_3_3", "QS4_8_HELPSEEKING1_4_4", "QS4_8_HELPSEEKING1_5_5", "QS4_8_HELPSEEKING1_6_6", "QS4_8_HELPSEEKING1_7_7", "QS4_8_HELPSEEKING1_8_8", "QS4_8_HELPSEEKING1_9_9", "QS4_8_HELPSEEKING1_10_10", "QS4_10_MENTALWELLBE1_1_1", "QS4_10_MENTALWELLBE1_2_2", "QS4_10_MENTALWELLBE1_3_3", "QS4_10_MENTALWELLBE1_4_4", "QS4_10_MENTALWELLBE1_5_5", "QS4_10_MENTALWELLBE1_6_6", "QS4_10_MENTALWELLBE1_7_7"
                           ) 
@@ -437,6 +437,10 @@ For some ordinal columns (numerically encoded ones), there is incongruency in th
 
     -   Not very true—Sometimes true---Very true
 
+-   Question 32: `QS2_37_HELPFULNESS`
+
+    -   Very helpful 1 Fairly helpful 2 Somewhat helpful 3 Not that helpful 4 **Not helpful at all 5**
+
 -   Question 36: `QS3_1_GLOBALSELFWOR1_2_2`
 
     -   \(1\) Strongly disagree (2) Disagree (3) Agree (4) [Strongly agree]{.underline}
@@ -458,16 +462,19 @@ Steps: `QS2_19_EXPERIENCE_`(1-5 scale: Always positive to Always negative) and `
 ```{r}
 reversed_coding <- youth |>
                   mutate(# Reverse QS2_19_EXPERIENCE_* (1-5 scale: Always positive to Always negative)
-                         across(matches("^QS2_19_EXPERIENCE_"), ~ 6 - .,  .names = "reversed_{.col}"),
+                         across(matches("^QS2_20_EXPERIENCE_"), ~ 6 - .,  .names = "reversed_{.col}"),
                       
                          # Reverse QS3_5_SCHOOLCLIMATE1_*_* (1-4 scale: Strongly Agree to Strongly Disagree)
-                         across(matches("^QS3_5_SCHOOLCLIMATE1_"), ~ 5 - ., .names = "reversed_{.col}"))
+                         across(matches("^QS3_5_SCHOOLCLIMATE1_"), ~ 5 - ., .names = "reversed_{.col}"),
+                          # Reverse QS2_37_HELPFULNESS (1-5 scale: Very helpful toNot helpful at all)
+                         across(matches("^QS2_37_HELPFULNESS"), ~ 5 - ., .names = "reversed_{.col}"),
+                         ) 
 ```
 
 ```{r}
 # Validate reversed coding:
 reversed_coding |>
-  select(starts_with("QS2_19_EXPERIENCE_"), starts_with("reversed_QS2_19_EXPERIENCE_"),
+  select(starts_with("QS2_20_EXPERIENCE_"), starts_with("reversed_QS2_20_EXPERIENCE_"),
          starts_with("QS3_5_SCHOOLCLIMATE1_"), starts_with("reversed_QS3_5_SCHOOLCLIMATE1_")) %>%
   head()
 
@@ -480,7 +487,7 @@ reversed_coding |>
 ```{r}
 youth <- youth |>
   mutate(# Reverse QS2_19_EXPERIENCE_* (1-5 scale: Always positive to Always negative)
-         across(matches("^QS2_19_EXPERIENCE_"), ~ 6 - .),
+         across(matches("^QS2_20_EXPERIENCE_"), ~ 6 - .),
       
          # Reverse QS3_5_SCHOOLCLIMATE1_*_* (1-4 scale: Strongly Agree to Strongly Disagree)
          across(matches("^QS3_5_SCHOOLCLIMATE1_"), ~ 5 - .))
@@ -489,7 +496,7 @@ youth <- youth |>
 ```{r}
 # Once again, validate result:
 youth |>
-  select(starts_with("QS2_19_EXPERIENCE_"), starts_with("QS3_5_SCHOOLCLIMATE1_")) |>
+  select(starts_with("QS2_20_EXPERIENCE_"), starts_with("QS3_5_SCHOOLCLIMATE1_")) |>
   head()
 ```
 
@@ -840,6 +847,37 @@ ncol(ohe_unimputed_train)
 ncol(youth)
 ```
 
+### Only one-hot encode the nominal columns [without]{.underline} imputation + Normalize ordinal columns:
+
+> Normalizing ordinal variables such as setting the varying range of Likert scale (e.g., 1-5, 1-4, 1-6 ranges) into consistent 0-1 range is recommended for subsequent analysis like autoencoder using Sigmoid activation (\[0,1\] output range).
+
+```{r}
+train_data_numeric <- train_data |>
+                      mutate(across(where(is.ordered), as.numeric))
+test_data_numeric <- test_data |>
+                      mutate(across(where(is.ordered), as.numeric))
+
+preprocessing_recipe_ohe_unimputed_normalize <- recipes::recipe(QS1_28_EMPLOYMENT_calculated ~ ., data = train_data_numeric) |>
+    step_dummy(all_of(cate_vars), one_hot = TRUE) |>
+    step_mutate(across(all_of(c(ordinal_chr_vars, ordinal_numeric_vars)),
+                     ~ scales::rescale(.x, to = c(0, 1), na.rm = TRUE))) |> # customize min max ranger
+                          step_normalize(all_of(metric_vars), na_rm = TRUE)
+```
+
+```{r}
+#| warning: false
+ohe_unimputed_normalize_prep <- preprocessing_recipe_ohe_unimputed_normalize |>
+                                 prep()
+
+ohe_unimputed_normalize_train <- bake(ohe_unimputed_normalize_prep, new_data = NULL)
+ohe_unimputed_normalize_test  <- bake(ohe_unimputed_normalize_prep, new_data = test_data_numeric)
+```
+
+```{r}
+nrow(ohe_unimputed_normalize_train)
+ncol(ohe_unimputed_normalize_train)
+```
+
 ## Examine new one-hot encoded columns:
 
 Task 1: Let's look at how many new one-hot encoded columns contain `*_PreferNotToSay`, `*_Unsure`, and `*_Other` endings, which need to be removed.
@@ -1086,13 +1124,13 @@ if (length(remaining_cols) > 0) {
 
     -   KNN imputation assess the relationship between variables to approximate missing values. If dependent variables (DVs) are included, imputed values for the independent variables (IVs) will be influenced by the DVs, leading to biased relationship between the IV and the DV.
 
--   Decision: We will passthrough the possible DVs during the KNN imputation pipeline in python.
+-   Decision: **We will *passthrough*** the possible DVs during the KNN imputation pipeline in python.
 
 ```{r}
 #| output: false
 ohe_unimputed_train |>
 select(starts_with(c('QS1_19_HIGHSCHOOL', 'QS4_19_CURRENTME', 'QS4_18_CURRENTOR', 
-                            'QS1_20_HIGHSCHOOL', 'QS1_21_FURTHEDUCA', 'QS1_22_HIGHESTEDU', 
+                             'QS1_21_FURTHEDUCA', 
                             'QS1_23_YEARCOMPLE', 'QS1_25_EMPLOYMENT', 'QS1_26_EMPLOYMENT',
                             'QS1_27_PLANNINGRE',  'QS1_28_EMPLOYMENT', 'QS4_4_EDUCATIONALEXPEC', 
                             'QS4_5_SATEDU','QS4_6_DISAPPOINTED', # these are self-motivation variable.
@@ -1138,8 +1176,15 @@ As R object (to retain the transformed data types)
 write_feather(train_data, "../../dssg-2025-mentor-canada/Data/umimputed_train.feather")
 write_feather(mean_mode_imputed_train, "../../dssg-2025-mentor-canada/Data/mean_mode_imputed_train.feather")
 write_feather(ohe_unimputed_train, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_train.feather") 
+write_feather(ohe_unimputed_normalize_train, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_train.feather") 
+write_csv(ohe_unimputed_normalize_train, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_train.csv") 
+
+
 
 write_feather(test_data, "../../dssg-2025-mentor-canada/Data/umimputed_test.feather")
 write_feather(mean_mode_imputed_test, "../../dssg-2025-mentor-canada/Data/mean_mode_imputed_test.feather")
 write_feather(ohe_unimputed_test, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_test.feather")
+write_feather(ohe_unimputed_normalize_test, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_test.feather")
+write_csv(ohe_unimputed_normalize_test, "../../dssg-2025-mentor-canada/Data/ohe_unimputed_normalize_test.csv") 
+
 ```

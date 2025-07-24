@@ -1,0 +1,183 @@
+---
+title: Geospatial plots on mentor data
+subtitle: Proportion of individuals with mentors growing up, mentor charcteristic rating
+date: 2025-06-09
+format: 
+    html:
+        toc: true
+        embed-resources: true
+        warning: false
+        tbl-cap-location: bottom
+---
+
+```{r}
+library(mapcan)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(readr)
+library(readxl)
+library(knitr)
+library(binom)
+library(ggrepel)
+```
+
+```{r}
+youth_orig <- read_csv("../../dssg-2025-mentor-canada/Data/encodedselectall.csv")
+```
+
+## Proportion of survey respondent with mentee experience growing up:
+
+### Load Canadian geospatial data:
+
+```{r}
+load_map <- mapcan(boundaries = 'province', type = 'standard')
+head(load_map)
+
+```
+
+### Proportion of respondents who had at least one mentor growing up (anywhere age 6-18), sorted by Canadian province:
+
+```{r}
+# calculate proportion of past mentee
+# youth_orig$QS2_3_PRESENCEOFM # mentor presence 6-11
+# youth_orig$QS2_9_PRESENCEOFA # mentor presence 12-18
+mentee_prop_df <- youth_orig |>
+          select(QS2_3_PRESENCEOFM, QS2_9_PRESENCEOFA, QS1_2_PROV) |>
+          mutate(mentee_prop = ifelse((QS2_3_PRESENCEOFM == "Yes"|QS2_9_PRESENCEOFA=="Yes"), 1, 0))
+
+prov_mentee_count <- mentee_prop_df |>
+                filter(!QS1_2_PROV %in% c('Unsure', 'Prefer not to say', 'Outside of Canada')) |>
+                group_by(QS1_2_PROV)|>
+                summarize(    mentee_count = sum(mentee_prop == 1, na.rm = TRUE),
+                          non_mentee_count = sum(mentee_prop == 0, na.rm = TRUE)) 
+
+prov_mentee_prop <- prov_mentee_count |>
+                    mutate(mentee_prop = mentee_count/(mentee_count + non_mentee_count)) 
+prov_mentee_prop
+```
+
+```{r}
+geo_prov_mentee_prop <- inner_join(prov_mentee_prop, load_map, by = c('QS1_2_PROV'= 'pr_english'))
+```
+
+```{r}
+ggplot(geo_prov_mentee_prop, aes(x = long, y = lat, group = group, fill = mentee_prop)) +
+        geom_polygon(linewidth = 0.2, colour = 'black') + 
+        coord_fixed() +
+        theme_mapcan("right") +
+        scale_fill_gradient(low = "#d4f2ac", high = "#5f1d6e") +
+        ggtitle("Proportion of respondents who had mentors \n any time from age 6-18") +
+        labs(fill = "Mentee proportion \nper province")
+```
+
+## Adjust plot for sample size per province:
+
+```{r}
+# Calculate total counts and confidence intervals
+prov_mentee_prop <- prov_mentee_prop %>%
+                      mutate(total_count = mentee_count + non_mentee_count,
+                             ci = binom.confint(mentee_count, total_count, conf.level = 0.95, methods = "wilson")) %>%
+                      unnest_wider(ci, names_sep = "_") %>%
+                      mutate(ci_width = ci_upper - ci_lower,
+                             alpha_value = pmin(total_count / 50, 1))  # Transparency: full opacity at 50+ responses
+  
+```
+
+```{r}
+# Bin proportions for visualization
+prov_mentee_prop <- prov_mentee_prop %>%
+                  mutate(prop_category = cut(mentee_prop, 
+                                            breaks = c(0, .30, .50, 0.70, 1.00), 
+                                            labels = c("Low (<30%)", "Medium (30–50%)", "High (50–70%)", "Very High (>70%)"),
+                                            include.lowest = TRUE))
+```
+
+```{r}
+
+```
+
+```{r}
+prop_colors <- c("Low (<30%)" = "#D9D9D9",     # Light gray
+                 "Medium (30–50%)" = "#913d63", # Light blue
+                 "High (50–70%)" = "#200363",   # Light red
+                 "Very High (>70%)" = "#BEBADA")# Purple
+```
+
+```{r}
+geo_prov_mentee_prop <- inner_join(prov_mentee_prop, load_map, by = c('QS1_2_PROV'= 'pr_english'))
+```
+
+```{r}
+# Calculate centroids by averaging long and lat per province
+pr_centroids <- load_map %>%
+  group_by(pr_english) %>%
+  summarize(long = mean(long, na.rm = TRUE),
+            lat = mean(lat, na.rm = TRUE)) %>%
+  ungroup()
+
+# Filter centroids to label only specified provinces
+label_provinces <- c("Yukon", "Northwest Territories", "Nunavut", "Quebec", 
+                     "Newfoundland and Labrador", "Prince Edward Island")
+label_data <- pr_centroids %>%
+  filter(pr_english %in% label_provinces) %>%
+  left_join(prov_mentee_prop, by = c("pr_english" = "QS1_2_PROV"))
+
+# Merge geographic data with data
+geo_prov_mentee_prop <- left_join(load_map, prov_mentee_prop, by = c("pr_english" = "QS1_2_PROV"))
+```
+
+```{r}
+# Plot geospatial map with transparency based on sample size
+ggplot(geo_prov_mentee_prop, aes(x = long, y = lat, group = group, fill = prop_category, alpha = alpha_value)) +
+  geom_polygon(color = "black", linewidth = 0.2) +
+  coord_fixed() +
+  #theme_mapcan() +
+  scale_fill_manual(name = "Mentee Proportion", 
+                    values = prop_colors,
+                    na.value = "grey50") +
+  scale_alpha_continuous(range = c(0.3, 1), guide = "none") +
+  ggtitle("Mentee Proportion by Province \n(Transparency by Sample Size)") +
+  labs(caption = "Transparency reflects sample size: \n provinces with smaller samples (e.g., Nunavut, Yukon) are more transparent.") +
+theme(text = element_text(size = 11, face = "bold"),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.caption = element_text(size = 11), panel.background = element_blank()) +
+xlim(-2e+06, 3.5e+06)
+
+```
+
+```{r}
+#|output: false
+ggplot(geo_prov_mentee_prop, aes(x = long, y = lat, group = group, fill = prop_category, alpha = alpha_value)) +
+  geom_polygon(color = "black", size = 0.2) +
+  geom_text(data = label_data, aes(label = pr_english, group = NULL), 
+            size = 4, color = "black", fontface = "bold") +  # Labels for specified provinces
+  coord_fixed() +
+  # theme_mapcan() +  # Commented out as per your code
+  scale_fill_manual(name = "Mentee Proportion", 
+                    values = prop_colors,
+                    na.value = "grey50") +
+  scale_alpha_continuous(range = c(0.3, 1), guide = "none") +
+  ggtitle("Mentee Proportion by Province \n(Transparency by Sample Size)") +
+  labs(caption = "Transparency reflects sample size: \n provinces with smaller samples (e.g., Nunavut, Yukon) are more transparent.") +
+  theme(text = element_text(size = 11),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.caption = element_text(size = 11)) +
+xlim(-2e+06, 3.5e+06)
+
+```
+
+```{r}
+ggplot(prov_mentee_prop, aes(x = QS1_2_PROV, y = mentee_prop, ymin = ci_lower, ymax = ci_upper)) +
+  geom_bar(stat = "identity", fill = "#80B1D3") +
+  geom_errorbar(width = 0.4, color = "black") +
+  theme_minimal() +
+  labs(y = "Mentee Proportion", x = "Province", 
+       title = "Mentee Proportion with 95% Confidence Intervals") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+theme(text = element_text(size = 14),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.caption = element_text(size = 10))
+```

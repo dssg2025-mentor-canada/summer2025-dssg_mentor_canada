@@ -8,7 +8,7 @@ import logging
 # Set up logging for debugging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Step 1: Load and prepare the dataset
+# Load and prep data
 def load_data(file_path):
     """
     Load dataset from a Feather file into a cuDF DataFrame.
@@ -28,7 +28,7 @@ def load_data(file_path):
         logging.error(f"Error loading data: {e}")
         raise
 
-# Step 2: Preprocess the data (no scaling for pre-standardized continuous variables)
+# Step 2: Preprocess data (no scaling for pre-standardized continuous variables! already done!)
 def preprocess_data(gdf, missing_threshold=0.9):
     """
     Optionally drop columns with high missingness.
