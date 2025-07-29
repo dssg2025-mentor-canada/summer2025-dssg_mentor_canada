@@ -12,8 +12,8 @@ from get_embedding_function import get_embedding_function
 from langchain_chroma import Chroma
 # using pinecone for vector store bc chroma does not support cosine similarity well (lots of conversions need to be made)
 # pip install -qU langchain-pinecone
-from langchain_pinecone import PineconeVectorStore
-from pinecone import Pinecone
+# from langchain_pinecone import PineconeVectorStore
+# from pinecone import Pinecone
 
 # to iterate over multiple PDF files
 from glob import glob
