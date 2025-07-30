@@ -18,3 +18,7 @@ dependencies:
   - pypdf # loading PDFs
   - pytest # unit tests
   - langchain-pinecone # for vector embeddings with cosine similarity
+  - python-dotenv
+  - pip:
+      - langchain-pinecone
+      - pinecone-client

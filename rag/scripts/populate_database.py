@@ -12,8 +12,7 @@ from get_embedding_function import get_embedding_function
 from langchain_chroma import Chroma
 # using pinecone for vector store bc chroma does not support cosine similarity well (lots of conversions need to be made)
 # pip install -qU langchain-pinecone
-# from langchain_pinecone import PineconeVectorStore
-# from pinecone import Pinecone
+from pinecone import Pinecone
 
 # to iterate over multiple PDF files
 from glob import glob
@@ -24,11 +23,15 @@ from langchain_openai import OpenAIEmbeddings
 # for semantic chunking (commented out for now)
 from langchain_text_splitters import SemanticChunker
 
+# for retrieving values securely from .env
+from dotenv import load_dotenv
+
 # ---------------------------------------------------
 # Configuration section
 # ---------------------------------------------------
-# open_api_key=_OPEN_API_KEY
-# pinecone_api_key =
+# open_api_key=os.getenv("OPEN_API_KEY")
+pinecone_api_key=os.getenv("PINECONE_API_KEY")
+pinecone_index_name=os.getenv("PINECONE_INDEX_NAME")
 
 
 DATA_PATH = glob("rag/processed_pdfs/*.pdf")
