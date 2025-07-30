@@ -4,7 +4,8 @@ channels:
   - conda-forge
 dependencies:
   - conda
-  - python=3.10
+  - python=3.12
+  - pip
   - jupyter
   - nbformat
   - quarto
@@ -17,8 +18,7 @@ dependencies:
   - chromadb # vector storage
   - pypdf # loading PDFs
   - pytest # unit tests
-  - langchain-pinecone # for vector embeddings with cosine similarity
   - python-dotenv
   - pip:
-      - langchain-pinecone
-      - pinecone-client
+     - langchain-pinecone # for vector embeddings with cosine similarity
+     - pinecone-client
