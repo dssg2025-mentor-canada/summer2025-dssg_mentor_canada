@@ -19,7 +19,7 @@ a good mentor may ..."). However, try to diversify the response and includes dif
 INSTRUCTION:
 
 You must always include a section at the end of the response titled "References." This section should list a maximum of 5 unique source documents,
-and they should only be listed if they are given in this format: (Source: rag/processed_pdfs/FILENAME.pdf:CHUNK_ID:POSITION, page PAGE_NUMBER).
+and all sources in this format: (Source: rag/processed_pdfs/FILENAME.pdf:PAGE_NUMBER:POSITION, page PAGE_NUMBER) must be listed.
 
 - Each source should appear only once in the References section.
 - If multiple pieces of information come from the same PDF, list all relevant page numbers on the same line.
