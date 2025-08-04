@@ -16,8 +16,64 @@ disjoint, specify the context as much as possible in your response. For example,
 you come across a chunk that addresses this question specific to newcomer youth, include this context (e.g., "For newcomer youth specifically, 
 a good mentor may ..."). However, try to diversify the response and includes different groups in your response.
 
-At the end of your response, include a “References” section listing the original filenames and page numbers of the documents the information was drawn from. 
-You can find this information in the "(Source: ...)" line included at the end of each context block.
+INSTRUCTION:
+
+You must always include a section at the end of the response titled "References." This section should list a maximum of 5 unique source documents,
+and they should only be listed if they are given in this format: (Source: rag/processed_pdfs/FILENAME.pdf:CHUNK_ID:POSITION, page PAGE_NUMBER).
+
+- Each source should appear only once in the References section.
+- If multiple pieces of information come from the same PDF, list all relevant page numbers on the same line.
+- Format page numbers as integers, separated by commas.
+
+Example:
+If these two source chunks are used:
+- rag/processed_pdfs/SRDC_Final_Report_ocr.pdf:55:0
+- rag/processed_pdfs/SRDC_Final_Report_ocr.pdf:22:0
+
+Then the reference should appear as:
+
+State of Mentoring Youth Survey Report: December 2020, page 55, 22
+
+  
+You will be given a list of source lines in the following format:
+
+(Source: rag/processed_pdfs/FILENAME.pdf:PAGE_NUMBER:POSITION, page PAGE_NUMBER)
+
+Your task is to extract:
+1. The original filename from the path (e.g., Becoming_a_Better_Mentor_ocr.pdf)
+2. The integer page number (e.g., 89 from "page 89.0"), THERE SHOULD NEVER BE A DECIMAL (.) DESCRIBING THE PAGE NUMBER
+3. Replace the filename using the following readable name mapping:
+
+Use this mapping of the original PDF names (left of the colon) and their more readable names (right of the colon):
+
+       "rag/processed_pdfs/Becoming_a_Better_Mentor_ocr.pdf":"Becoming a Better Mentor: Strategies to be There for Young People",
+        "rag/processed_pdfs/Confidential_Draft_SRDC_Report_ocr.pdf":"Unlocking Doors: Research on Mentoring to Strengthen Skills & Support Career Pathways for Racialized young Adults",
+        "rag/processed_pdfs/Effective_Elements_For_Mentorship_ocr.pdf":"ELEMENTS OF EFFECTIVE PRACTICE FOR MENTORING: A Guide for Program Development and Improvement",
+        "rag/processed_pdfs/Mapping_the_Gap_Report_ocr.pdf":"Mapping the Mentoring Gap Report: The State of Mentoring in Canada May 2021",
+        "rag/processed_pdfs/"MENTOR_The_Mentoring_Effect_Full_Report_ocr.pdf":"The Mentoring Effect: Young People's Perspectives on the Outcomes and Availability of Mentoring",
+        "rag/processed_pdfs/Newcomer_Mentoring Effect_Brief_ocr.pdf":"The Mentoring Effect: Newcomer Youth", 
+        "rag/processed_pdfs/SRDC_Final_Report_ocr.pdf":"State of Mentoring Youth Survey Report: December 2020",
+        "rag/processed_pdfs/SRDC_Final_RTP_Report_Dec15_FINAL_ocr.pdf":"Raising the Profile Report",
+        "rag/processed_pdfs/Who-Mentored-You_ocr.pdf":"Who Mentored You 2023" 
+
+Using this mapping, transform the source lines into a “References” section like this:
+
+EXAMPLE INPUT:
+
+(Source: rag/processed_pdfs/Becoming_a_Better_Mentor_ocr.pdf:89:0, page 89.0)
+(Source: rag/processed_pdfs/Who-Mentored-You_ocr.pdf:2:0, page 2.0)
+(Source: rag/processed_pdfs/Mapping_the_Gap_Report_ocr.pdf:3:0, page 3.0)
+(Source: rag/processed_pdfs/MENTOR_The_Mentoring_Effect_Full_Report_ocr.pdf:8:0, page 8.0)
+(Source: rag/processed_pdfs/Newcomer_Mentoring Effect_Brief_ocr.pdf:20:0, page 20.0)
+
+EXPECTED OUTPUT:
+
+References: 
+- Becoming a Better Mentor: Strategies to be There for Young People, page 89
+- Who Mentored You 2023, page 2
+- Mapping the Mentoring Gap Report: The State of Mentoring in Canada May 2021, page 3
+- Young People's Perspectives on the Outcomes and Availability of Mentoring, page 8
+- The Mentoring Effect: Newcomer Youth, page 20
 
 Maintain a conversational tone while delivering sensitive information with care and nuance. Avoid run-on sentences and excessive lists. 
 The response should flow smoothly while retaining a high level of detail.
@@ -85,6 +141,14 @@ def query_rag(query_text:str):
     model = OllamaLLM(model="mistral")
     response_text = model.invoke(prompt)
 
+    # sources = [doc.metadata.get("id", None) for doc, _score in results]
+    # formatted_response = f"Response: {response_text}\nSources: {sources}"
+    references = sorted({
+        f"{PDF_NAME_MAP.get(os.path.basename(doc.metadata.get('id', 'Unknown')), 'Unknown')}, page {int(float(doc.metadata.get('page', 0)))}"
+        for doc, _ in results
+    })
+
+    # Combine the model response with the cleaned references last reference section
     sources = [doc.metadata.get("id", None) for doc, _score in results]
     formatted_response = f"Response: {response_text}\nSources: {sources}"
     print(formatted_response)
