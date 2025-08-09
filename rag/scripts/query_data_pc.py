@@ -1,6 +1,7 @@
 import argparse
 import os
 from dotenv import load_dotenv
+from typing import List, Tuple, Dict
 
 from pinecone import Pinecone as PineconeClient
 from langchain_pinecone import PineconeVectorStore
@@ -86,8 +87,89 @@ Answer the question based only on the following context:
 
 Answer the question based on the above context: {question}
 """
+
+PDF_NAME_MAP = {
+    "Becoming_a_Better_Mentor_ocr.pdf":"Becoming a Better Mentor: Strategies to be There for Young People",
+    "Confidential_Draft_SRDC_Report_ocr.pdf":"Unlocking Doors: Research on Mentoring to Strengthen Skills & Support Career Pathways for Racialized young Adults",
+    "Effective_Elements_For_Mentorship_ocr.pdf":"ELEMENTS OF EFFECTIVE PRACTICE FOR MENTORING: A Guide for Program Development and Improvement",
+    "Mapping_the_Gap_Report_ocr.pdf":"Mapping the Mentoring Gap Report: The State of Mentoring in Canada May 2021",
+    "MENTOR_The_Mentoring_Effect_Full_Report_ocr.pdf":"The Mentoring Effect: Young People's Perspectives on the Outcomes and Availability of Mentoring",
+    "Newcomer_Mentoring Effect_Brief_ocr.pdf":"The Mentoring Effect: Newcomer Youth", 
+    "SRDC_Final_Report_ocr.pdf":"State of Mentoring Youth Survey Report: December 2020",
+    "SRDC_Final_RTP_Report_Dec15_FINAL_ocr.pdf":"Raising the Profile Report",
+    "Who-Mentored-You_ocr.pdf":"Who Mentored You 2023" 
+}
+
 # get variables from .env file
 load_dotenv()
+
+EMBEDDINGS = get_embedding_function()
+
+PC = PineconeClient(api_key=os.getenv("PINECONE_API_KEY"))
+INDEX = PC.Index(os.getenv("PINECONE_INDEX_NAME"))
+VECTORSTORE = PineconeVectorStore(index=INDEX, embedding=EMBEDDINGS, text_key="text")
+
+PROMPT = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+LLM = OllamaLLM(model="mistral")  # swap here if you change models
+
+
+
+
+def retrieve(query_text: str, k: int = 5) -> Tuple[List[str], list]:
+    """
+    Return (contexts, results) where:
+      contexts: List[str] for RAGAS
+      results:  original (Document, score) tuples for printing sources
+    """
+    results = VECTORSTORE.similarity_search_with_score(query_text, k=k)
+    contexts = [doc.page_content for doc, _ in results] if results else []
+    return contexts, results
+
+
+def generate_answer(question: str, contexts_texts: List[str]) -> str:
+    context_text = "\n\n---\n\n".join(contexts_texts)
+    prompt = PROMPT.format(context=context_text, question=question)
+    return LLM.invoke(prompt)
+
+
+def run_query(question: str) -> Tuple[str, List[str]]:
+    """
+    Returns exactly what RAGAS needs:
+      - answer (string)
+      - contexts (list of strings)
+    """
+    contexts= retrieve(question, k=5)
+    answer = generate_answer(question, contexts)
+    return answer, contexts
+
+
+# ---------------------------
+# CLI Wrapper
+# ---------------------------
+def query_rag(query_text: str) -> str:
+    """For manual testing in the terminal."""
+    contexts, results = retrieve(query_text, k=5)
+
+    if not contexts:
+        print("No relevant documents retrieved for this query.")
+        return ""
+
+    # Print context previews
+    for i, ctx in enumerate(contexts, start=1):
+        preview = ctx[:300].replace("\n", " ")
+        # print(f"Context {i} preview: {preview}")  # can comment out this to clean output
+
+    # Generate the answer
+    response_text = generate_answer(query_text, contexts)
+
+    # Raw source IDs (as in your original printout)
+    sources = [doc.metadata.get("id", None) for doc, _ in results]
+
+    # Print the formatted response with sources
+    formatted_response = f"Response: {response_text}\nSources: {sources}"
+    print(formatted_response)
+
+    return response_text
 
 def main():
     # Create CLI.
@@ -97,64 +179,5 @@ def main():
     query_text = args.query_text
     query_rag(query_text)
 
-
-def query_rag(query_text:str):
-
-    # load the database with the embeddings
-    embedding_function = get_embedding_function()
-
-    pc = PineconeClient(api_key=os.getenv("PINECONE_API_KEY"))
-    index = pc.Index(os.getenv("PINECONE_INDEX_NAME"))
-
-    db = PineconeVectorStore(index=index, embedding=embedding_function, text_key="text")
-
-
-    # search the database
-    results = db.similarity_search_with_score(query_text, k=5)
-
-    if not results:
-        print("No relevant documents retrieved for this query.")
-    else:
-        for doc, score in results:
-            print(f"Score: {score}, ID: {doc.metadata.get('id')}, Content preview: {doc.page_content[:300]}")
-
-    PDF_NAME_MAP = {
-        "Becoming_a_Better_Mentor_ocr.pdf":"Becoming a Better Mentor: Strategies to be There for Young People",
-        "Confidential_Draft_SRDC_Report_ocr.pdf":"Unlocking Doors: Research on Mentoring to Strengthen Skills & Support Career Pathways for Racialized young Adults",
-        "Effective_Elements_For_Mentorship_ocr.pdf":"ELEMENTS OF EFFECTIVE PRACTICE FOR MENTORING: A Guide for Program Development and Improvement",
-        "Mapping_the_Gap_Report_ocr.pdf":"Mapping the Mentoring Gap Report: The State of Mentoring in Canada May 2021",
-        "MENTOR_The_Mentoring_Effect_Full_Report_ocr.pdf":"The Mentoring Effect: Young People's Perspectives on the Outcomes and Availability of Mentoring",
-        "Newcomer_Mentoring Effect_Brief_ocr.pdf":"The Mentoring Effect: Newcomer Youth", 
-        "SRDC_Final_Report_ocr.pdf":"State of Mentoring Youth Survey Report: December 2020",
-        "SRDC_Final_RTP_Report_Dec15_FINAL_ocr.pdf":"Raising the Profile Report",
-        "Who-Mentored-You_ocr.pdf":"Who Mentored You 2023" 
-    }
-
-    context_text = "\n\n---\n\n".join([
-    f"{doc.page_content}\n(Source: {PDF_NAME_MAP.get(doc.metadata.get('id', 'Unknown'), doc.metadata.get('id', 'Unknown'))}, page {doc.metadata.get('page', 'N/A')})"
-    for doc, _ in results
-])
-    prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-    prompt = prompt_template.format(context=context_text, question=query_text)
-    print(prompt)
-
-    model = OllamaLLM(model="mistral")
-    response_text = model.invoke(prompt)
-
-    # sources = [doc.metadata.get("id", None) for doc, _score in results]
-    # formatted_response = f"Response: {response_text}\nSources: {sources}"
-    references = sorted({
-        f"{PDF_NAME_MAP.get(os.path.basename(doc.metadata.get('id', 'Unknown')), 'Unknown')}, page {int(float(doc.metadata.get('page', 0)))}"
-        for doc, _ in results
-    })
-
-    # Combine the model response with the cleaned references last reference section
-    sources = [doc.metadata.get("id", None) for doc, _score in results]
-    formatted_response = f"Response: {response_text}\nSources: {sources}"
-    print(formatted_response)
-    return response_text
-
-
 if __name__ == "__main__":
     main()
-
