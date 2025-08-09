@@ -125,23 +125,31 @@ def retrieve(query_text: str, k: int = 5) -> Tuple[List[str], list]:
     contexts = [doc.page_content for doc, _ in results] if results else []
     return contexts, results
 
+def _normalize_contexts(ctxs) -> list[str]:
+    """Ensure contexts is a flat list[str]."""
+    norm: list[str] = []
+    for c in (ctxs or []):
+        if isinstance(c, str):
+            norm.append(c)
+        elif isinstance(c, (list, tuple)):
+            # flatten nested lists/tuples
+            for x in c:
+                norm.append(str(x))
+        else:
+            norm.append(str(c))
+    return norm
 
-def generate_answer(question: str, contexts_texts: List[str]) -> str:
+def generate_answer(question: str, contexts_texts: list[str]) -> str:
+    contexts_texts = _normalize_contexts(contexts_texts)  # <- ensure strings
     context_text = "\n\n---\n\n".join(contexts_texts)
     prompt = PROMPT.format(context=context_text, question=question)
     return LLM.invoke(prompt)
 
-
-def run_query(question: str) -> Tuple[str, List[str]]:
-    """
-    Returns exactly what RAGAS needs:
-      - answer (string)
-      - contexts (list of strings)
-    """
-    contexts= retrieve(question, k=5)
+def run_query(question: str) -> tuple[str, list[str]]:
+    contexts, _results = retrieve(question, k=5)
+    contexts = _normalize_contexts(contexts)              # <- ensure strings
     answer = generate_answer(question, contexts)
     return answer, contexts
-
 
 # ---------------------------
 # CLI Wrapper
