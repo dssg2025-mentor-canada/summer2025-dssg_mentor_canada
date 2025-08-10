@@ -5,6 +5,9 @@ from pathlib import Path
 
 from query_data_pc import run_query  # must return (answer: str, contexts: List[str])
 
+from langchain_ollama import ChatOllama
+from ragas import LangchainLLM
+
 from ragas import evaluate
 from ragas.metrics import faithfulness, answer_relevancy
 
@@ -30,7 +33,20 @@ with out_path.open("w") as f:
     json.dump(rows, f, indent=2)
 print(f"Saved {len(rows)} samples to {out_path}")
 
-# create Hugging Face Dataset and evaluate
+# mkaes local evaluator using Ollama Mistral
+ollama_eval = ChatOllama(
+    model="mistral",        # or "mistral:7b-instruct" depending on your local tags
+    temperature=0,
+    num_ctx=2048,           # lower if you hit context limits
+    num_predict=256         # keep small to speed up scoring
+)
+ragas_llm = LangchainLLM(ollama_eval)
+
+# create Hugging Face Dataset
 dataset = Dataset.from_list(rows)
-result = evaluate(dataset, metrics=[faithfulness, answer_relevancy])
+
+result = evaluate(dataset,
+                   metrics=[faithfulness, answer_relevancy],
+                   llm=ragas_llm
+                   )
 print("RAGAS (macro) results:", result)
