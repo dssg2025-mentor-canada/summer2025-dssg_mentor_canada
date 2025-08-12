@@ -8,7 +8,7 @@ from query_data_pc import run_query  # must return (answer: str, contexts: List[
 
 # Load questions (supports [{"question": "..."}] or ["...", ...])
 def load_questions(path: str):
-    with open("rag/data/evaluation_questions.json", "r") as f:
+    with open(path, "r") as f:
         raw = json.load(f)
     return [q["question"] for q in raw] if raw and isinstance(raw[0], dict) else raw
 
@@ -30,7 +30,7 @@ def main():
         })
 
     # save rows to JSON (can evaluate later without re-running RAG)
-    out_path = Path("rag/data/naive_single_turn_samples.json")
+    out_path = Path(args.output_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w") as f:
         json.dump(rows, f, indent=2)
